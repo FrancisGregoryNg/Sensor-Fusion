@@ -1,26 +1,28 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.random import uniform 
+from numpy.random import uniform
+import csv
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------   Function Definitions  -------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# for getting the position using the IEEE 802.15.4a values
+# Used for getting the position using the IEEE 802.15.4a values
 def get_position_IEEE(IEEE_1, IEEE_2):
-    # formulate after knowing how it actually works
+    # find the most similar signal signature from database
+    database
     x = 0
     y = 0
     return x, y
 
-# for getting the position using the three encoder values
+# Used for getting the position using the three encoder values
 def get_position_encoder(encoder_1, encoder_2, encoder_3):
     # formulate after determining the AGV configuration
     x = 0
     y = 0
     return x, y
 
-# for converting position data from encoder into velocity (per component)
+# Used for converting position data from encoder into velocity (per component)
 def get_velocity(position_previous, position_present, sensor_frequency):
     velocity = (position_present - position_previous) * sensor_frequency
     return velocity
@@ -28,6 +30,29 @@ def get_velocity(position_previous, position_present, sensor_frequency):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------      Initialization     -------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#---------------------------------------------------------------------------
+# Set up database
+#---------------------------------------------------------------------------
+
+# Initialize the signal mapping matrix and the corresponding location matrix
+signal_map = np.zeros((1,2), dtype = float)
+locations = np.zeros((1,2), dtype = float)
+
+# Copy data from the .csv files onto the corresponding matrices
+with open('IEEE_signal_database.csv') as database:
+    read_database = csv.DictReader(database)
+    for row in read_database:
+        signal_map = np.append([[row['IEEE_0'], row['IEEE_1']]], axis = 0)
+       
+with open('IEEE_matching_locations.csv') as locations:
+    read_locations = csv.DictReader(locations)
+    for row in read_locations:
+        locations = np.append([[row['x'], row['y']]], axis = 0)
+        
+# Delete the initial zero-value rows of the matrices
+signal_map = np.delete(signal_map, (0), axis = 0)
+locations = np.delete(locations, (0), axis = 0)
 
 #---------------------------------------------------------------------------
 # Set values
@@ -53,8 +78,11 @@ sensor_frequency = 60
 #---------------------------------------------------------------------------
 # Draw samples from a uniform distribution (initial distribution)
 #---------------------------------------------------------------------------
+
+# Initialize the state matrix with zeros
 state_matrix = np.zeros((number_of_particles, 4), dtype = float)
 
+# Fill state date for each particle
 for particle in range(number_of_particles):
     
     #the state matrix is composed of the state vectors of all particles
@@ -79,18 +107,18 @@ for particle in range(number_of_particles):
 # IEEE 802.15.4a signals are received from two transmitters 
 # it is assumed that multiplexing is done
 # the sensor frequency must be at least twice that of the unified frequency
-IEEE_1 = 0 # pin readout from pin A
-IEEE_2 = 0 # pin readout from pin A at an offest of < 0.5 * sensor_frequency
+IEEE_0 = 0 # pin readout from pin A
+IEEE_1 = 0 # pin readout from pin A at an offest of < 0.5 * sensor_frequency
 
-encoder_1 = 0 # pin readout from pin B
-encoder_2 = 0 # pin readout from pin C
-encoder_3 = 0 # pin readout from pin D
+encoder_0 = 0 # pin readout from pin B
+encoder_1 = 0 # pin readout from pin C
+encoder_2 = 0 # pin readout from pin D
 
 # from IEEE 802.15.4a input
-position_x, position_y = get_position_IEEE(IEEE_1, IEEE_2)
+position_x, position_y = get_position_IEEE(IEEE_0, IEEE_1)
 
 # from encoder input
-x_present, y_present = get_position_encoder(encoder_1, encoder_2, encoder_3)
+x_present, y_present = get_position_encoder(encoder_0, encoder_1, encoder_2)
 
 # start with zero velocity due to lack of data as the system just initialized
 velocity_x = 0
@@ -129,19 +157,20 @@ plt.show()
 # IEEE 802.15.4a signals are received from two transmitters 
 # it is assumed that multiplexing is done
 # the sensor frequency must be at least twice that of the unified frequency
-IEEE_1 = 0 # pin readout from pin A
-IEEE_2 = 0 # pin readout from pin A at an offest of < 0.5 * sensor_frequency
+IEEE_0 = 0 # pin readout from pin A
+IEEE_1 = 0 # pin readout from pin A at an offest of < 0.5 * sensor_frequency
 
-encoder_1 = 0 # pin readout from pin B
-encoder_2 = 0 # pin readout from pin C
-encoder_3 = 0 # pin readout from pin D
+# Encoder values are received for the three omni-directional wheels
+encoder_0 = 0 # pin readout from pin B
+encoder_1 = 0 # pin readout from pin C
+encoder_2 = 0 # pin readout from pin D
 
-# from IEEE 802.15.4a input
-position_x, position_y = get_position_IEEE(IEEE_1, IEEE_2)
+# Position is taken from IEEE 802.15.4a input
+position_x, position_y = get_position_IEEE(IEEE_0, IEEE_1)
 
-# from encoder input
+# Velocity is taken from encoder input (unreliable position because of drift)
 x_previous, y_previous = x_present, y_present
-x_present, y_present = get_position_encoder(encoder_1, encoder_2, encoder_3)
+x_present, y_present = get_position_encoder(encoder_0, encoder_1, encoder_2)
 velocity_x = get_velocity(x_previous, x_present)
 velocity_y = get_velocity(y_previous, y_present)
 
