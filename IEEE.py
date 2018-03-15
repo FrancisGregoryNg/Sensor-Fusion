@@ -30,7 +30,7 @@ direction = 1
 counter = 0
 
 # Set the grid locations
-with open('IEEE_signal_database.csv') as database:
+with open('IEEE_matching_locations.csv') as database:
     coordinates = ['x', 'y']
     write_database = csv.DictWriter(database, fieldnames = coordinates)
     write_database.writeheader()
