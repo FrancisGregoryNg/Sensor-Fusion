@@ -30,10 +30,10 @@ direction = 1
 counter = 0
 
 # Set the grid locations
-with open('IEEE_matching_locations.csv') as database:
+with open('IEEE_matching_locations.csv') as locations:
     coordinates = ['x', 'y']
-    write_database = csv.DictWriter(database, fieldnames = coordinates)
-    write_database.writeheader()
+    write_locations = csv.DictWriter(locations, fieldnames = coordinates)
+    write_locations.writeheader()
 
 # Make the grid locations using snake-like progression
 for run in number_of_datapoints:
@@ -43,7 +43,7 @@ for run in number_of_datapoints:
         direction = direction * -1
         x = x + direction
         y = y + 1
-    write_database.writerow({'x': x, 'y': y})
+    write_locations.writerow({'x': x, 'y': y})
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
