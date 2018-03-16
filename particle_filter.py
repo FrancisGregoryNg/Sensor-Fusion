@@ -8,7 +8,7 @@ import csv
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Used for getting the position using the IEEE 802.15.4a values
-def get_position_IEEE(IEEE_1, IEEE_2):
+def get_position_IEEE(IEEE_0, IEEE_1):
     # find the most similar signal signature from database
     database
     x = 0
@@ -16,7 +16,7 @@ def get_position_IEEE(IEEE_1, IEEE_2):
     return x, y
 
 # Used for getting the position using the three encoder values
-def get_position_encoder(encoder_1, encoder_2, encoder_3):
+def get_position_encoder(encoder_0, encoder_1, encoder_2):
     # formulate after determining the AGV configuration
     x = 0
     y = 0
