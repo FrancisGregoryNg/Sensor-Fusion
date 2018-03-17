@@ -1,0 +1,14 @@
+Transfer from Schematic to PCB.
+-------------------------------
+
+Report Written:     Tuesday, March 06, 2018
+Design Path:        D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.pcb
+Design Title:       
+Created:            3/6/2018 1:16:08 PM
+Last Saved:         3/6/2018 1:19:18 PM
+Editing Time:       3 min
+Units:              thou (precision 0)
+
+Net class "Ground" was not defined, but has been created. Please check the values in the PCB design.
+
+End Of Report.

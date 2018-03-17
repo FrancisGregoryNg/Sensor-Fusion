@@ -1,0 +1,30 @@
+Forward Design Changes Report
+-----------------------------
+
+Report Written:     Thursday, March 08, 2018
+Project Path:       D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.prj
+Design Path:        D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.pcb
+Design Title:       
+Created:            3/6/2018 1:16:08 PM
+Last Saved:         3/8/2018 12:45:30 PM
+Editing Time:       574 min
+Units:              thou (precision 0)
+
+Disconnected pin "IC2-11" from net "N0146".
+Disconnected pin "IC2-14" from net "N0145".
+Disconnected pin "J4-1" from net "N0146".
+Disconnected pin "J4-2" from net "N0145".
+
+Deleted net "N0145".
+Deleted net "N0146".
+
+Added net "N0152".
+Added net "N0155".
+
+Connected pin "IC2-14" to net "N0155".
+Connected pin "IC2-11" to net "N0152".
+Connected pin "J4-1" to net "N0155".
+Connected pin "J4-2" to net "N0152".
+
+
+End Of Report.

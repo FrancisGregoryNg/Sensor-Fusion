@@ -1,0 +1,64 @@
+Design Rule Check Report
+------------------------
+
+Report Written:     Thursday, March 08, 2018
+Project Path:       D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.prj
+Design Path:        D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.pcb
+Design Title:       
+Created:            3/6/2018 1:16:08 PM
+Last Saved:         3/8/2018 2:51:09 PM
+Editing Time:       688 min
+Units:              thou (precision 0)
+
+
+Results
+=======
+
+
+No errors found
+
+
+Settings
+========
+
+
+Spacings
+
+=========
+
+Tracks        Yes
+Pads and Vias Yes
+Shapes        No
+Text          No
+Board         No
+Drills        No
+Components    No
+
+
+Manufacturing
+
+==============
+
+Drill Breakout                  No
+Drill Backoff                   No
+Silkscreen Overlap              No
+Copper Text In Board            No
+Min Track Width                 No
+Min Annular Ring                No
+Min Paste Size                  No
+Vias In Pads                    No
+Unplated Vias                   No
+Unplated Pads With Inner Tracks No
+
+
+Nets
+
+=====
+
+Net Completion               Yes
+Dangling Tracks              Yes
+Net Track Length Differences No
+
+
+
+End Of Report.

@@ -1,0 +1,14 @@
+Pour Copper Report
+------------------
+
+Report Written:     Thursday, March 08, 2018
+Project Path:       D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.prj
+Design Path:        D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.pcb
+Design Title:       
+Created:            3/6/2018 1:16:08 PM
+Last Saved:         3/8/2018 2:51:09 PM
+Editing Time:       689 min
+Units:              thou (precision 0)
+
+
+End Of Report.
