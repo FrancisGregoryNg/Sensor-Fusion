@@ -1,8 +1,12 @@
 import csv
+import pigpio
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#-------------------------      Initialization     -------------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#-------------------------      Initialization     ----------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Use pigpio daemon to control general-purpose input/outputs more freely
+pi = pigpio.pi()
 
 # Set the size of the room (must be the same with particle_filter.py)
 room_width = 5000
@@ -18,9 +22,9 @@ size_of_y = 1 + room_length/grid_precision
 # Calculate the number of datapoints for use in the signal mapping
 number_of_datapoints = size_of_x * size_of_y
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#-------------------------      Grid Locations     -------------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#-------------------------      Grid Locations     ----------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Start with the 
 x, y = 0, 0
@@ -46,12 +50,18 @@ for run in number_of_datapoints:
     write_locations.writerow({'x': x, 'y': y})
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#-------------------------  IEEE signal signature  -------------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#-------------------------  IEEE signal signature  ----------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Open pins for bit bang reading of serial data
+pi.bb_serial_read_open(14, 115200)
+pi.bb_serial_read_open(15, 115200)
+
+# IEEE 802.15.4a signals are taken before the encoder logging time
 
 # Set the trigger for logging the data
-log_data = 0 
+log_data = 0
 
 # Log the data directly onto the .csv file
 with open('IEEE_signal_database.csv') as database:
@@ -63,6 +73,11 @@ for run in number_of_datapoints:
     log_data = 0 # specify pin input in the future
     if log_data == 1:
         run = run + 1
-        IEEE_0 = 0 # specify pin input in the future
-        IEEE_1 = 0 # specify pin input in the future
+        # Base signal strength on the number of bytes read, ignore bytearray
+        (IEEE_0, temp_data_0) = pi.bb_serial_read()
+        (IEEE_1, temp_data_1) = pi.bb_serial_read()
         write_database.writerow({'IEEE_0': IEEE_0, 'IEEE_1': IEEE_1})
+        
+# Close pins for bit bang reading of serial data
+pi.bb_serial_read_close(14)
+pi.bb_serial_read_close(15)
