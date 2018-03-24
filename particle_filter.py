@@ -15,8 +15,13 @@ def get_velocity_encoder(encoder_0, encoder_1, encoder_2):
     # (/) Left is encoder_1, 
     # (_) Bottom is encoder_2
     # Treat direction along clockwise rotation as positive
+    # Get the mean measurement along each axis
     x = (0.5 * encoder_0 + -0.5 * encoder_1 + encoder_2) / 3
     y = (0.57735 * encoder_0 + 0.57735 * encoder_1) / 2
+    # The encoder reflects a 0.5-degree rotation per value change
+    # Convert encoder rate into velocity in millimeters per second (mm/s)
+    x = x * np.pi * diameter * 0.5 / 360
+    y = y * np.pi * diameter * 0.5 / 360
     return x, y
 
 # Used for getting the index of the closes pairs of values in a nx2 matrix
@@ -108,9 +113,8 @@ room_length = 5000
 # the measurement unit is in millimeters per second (mm/s)
 max_speed = 1000
 
-# the frequency of sensor input is identified (unified for both sensors)
-# the measurement unit is in hertz
-sensor_frequency = 60
+# the diameter of each omni-wheel is in millimeters (mm)
+diameter = 10
 
 #------------------------------------------------------------------------------
 # Draw samples from a uniform distribution (initial distribution)
@@ -155,7 +159,7 @@ pi.bb_serial_read_close(14)
 pi.bb_serial_read_close(15)
 
 # Set time for counter encoder rotations to 1 second
-timeout = time.time()
+timeout = time.time() + 1
 
 # Initialize the encoder counter
 encoder_0 = 0
@@ -249,26 +253,7 @@ velocity_x, velocity_y = get_velocity_encoder(encoder_0, encoder_1, encoder_2)
 # Gather sensor values
 #------------------------------------------------------------------------------
 
-# IEEE 802.15.4a signals are received from two transmitters 
-# it is assumed that multiplexing is done
-# the sensor frequency must be at least twice that of the unified frequency
-IEEE_0 = 0 # pin readout from pin A
-IEEE_1 = 0 # pin readout from pin A at an offest of < 0.5 * sensor_frequency
-
-# Encoder values are received for the three omni-directional wheels
-encoder_0 = 0 # pin readout from pin B
-encoder_1 = 0 # pin readout from pin C
-encoder_2 = 0 # pin readout from pin D
-
-# Position is taken from IEEE 802.15.4a input
-position_x, position_y = get_position_IEEE(IEEE_0, IEEE_1)
-
-# Velocity is taken from encoder input (unreliable position because of drift)
-x_previous, y_previous = x_present, y_present
-x_present, y_present = get_position_encoder(encoder_0, encoder_1, encoder_2)
-velocity_x = get_velocity(x_previous, x_present)
-velocity_y = get_velocity(y_previous, y_present)
-
+# Replicate from 'Gather sensor values' of initialization stage
 
 #------------------------------------------------------------------------------
 # Update weights
