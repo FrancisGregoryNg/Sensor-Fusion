@@ -1,5 +1,5 @@
 import csv
-import pigpio
+'''import pigpio'''
 import numpy as np
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -7,14 +7,14 @@ import numpy as np
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Use pigpio daemon to control general-purpose input/outputs more freely
-pi = pigpio.pi()
+'''pi = pigpio.pi()'''
 
 # Set the size of the room (must be the same with particle_filter.py)
 # the room dimensions (width, length) correspond to (x, y)
 # the origin starts at a selected corner of the room
 # the measurement unit is in millimeters (mm)
-room_width = 5000
-room_length = 5000
+room_width = 2000
+room_length = 2000
 
 # The balance between precision and difficulty is determined heuristically
 # the measurement unit is in millimeters (mm)
@@ -31,30 +31,32 @@ number_of_datapoints = size_of_x * size_of_y
 #-------------------------      Grid Locations     ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Start with the origin
-x, y = 0, 0
-
-# Monitor the reversals because the progression is done in a snake-like manner
-direction = 1
-counter = 0
-
 # Set the grid locations
 with open('IEEE_matching_locations.csv', 'w') as locations:
     coordinates = ['x', 'y']
-    write_locations = csv.DictWriter(locations, fieldnames = coordinates)
+    write_locations = csv.DictWriter(locations, fieldnames = coordinates,
+                                     lineterminator = '\n')
     write_locations.writeheader()
-
-# Make the grid locations using snake-like progression
-for run in range(number_of_datapoints):
-    if counter < size_of_x:
-        x = x + direction
-    else:
-        direction = direction * -1
-        x = x + direction
-        y = y + 1
-    write_locations.writerow({'x': x, 'y': y})
-
-
+   
+    # Start with the origin
+    x, y = 0, 0
+    
+    # Monitor the reversals because the progression is done in a snake-like manner
+    direction = 1 
+    counter = 1
+    
+    # Run the loop to progress through the grid in a snake-like manner
+    for run in range(number_of_datapoints):
+        write_locations.writerow({'x': x, 'y': y})
+        if counter < size_of_x:
+            x = x + direction * grid_precision
+        else:
+            direction = direction * -1
+            counter = 0
+            y = y + grid_precision
+        counter += 1
+        
+'''
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------  IEEE signal signature  ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,4 +87,4 @@ for run in range(number_of_datapoints):
         
 # Close pins for bit bang reading of serial data
 pi.bb_serial_read_close(14)
-pi.bb_serial_read_close(15)
+pi.bb_serial_read_close(15)'''
