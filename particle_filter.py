@@ -305,6 +305,9 @@ weight = np.zeros((number_of_particles, 1), dtype = float)
 weight_IEEE = np.zeros((number_of_particles, 1), dtype = float)
 weight_encoder = np.zeros((number_of_particles, 1), dtype = float)
 
+# Initialize the temporary array for storing index for resampling
+resample = np.zeros((number_of_particles, 1), dtype = float)
+
 # The weights for the initial particles are equal
 for particle in range(number_of_particles):
     weight[particle] = 1 / number_of_particles
@@ -455,8 +458,34 @@ while True:
     if effective_number_of_particles < 2/3 * number_of_particles:
         # The systematic within residual resampling method is used
         # The basis for this is page 21 of by Murray Pollock's 
-        # “Introduction to Particle Filtering” Discussion - Notes  
-        resample = 1
+        # “Introduction to Particle Filtering” Discussion - Notes
+        
+        # Get the integer part and the residual part of the scaled weights
+        (number_of_copies, residual) = np.divmod(number_of_particles * weight)
+        
+        # Get the needed values for the resampling method
+        residual = residual / np.sum(residual)
+        cumulative_sum = np.cumsum(residual)
+        divisions = number_of_particles - np.sum(number_of_copies)
+        positions = (np.linspace(0, 1, divisions, endpoint = False) +
+                     (np.random.random() / divisions))
+        
+        # Make sure that the sequence ends with 1 (not more or less)
+        cumulative_sum[-1] = 1
+        
+        # Evaluate the particles based on the determined values
+        # Conducted residual and systematic strategies per particle
+        # It may be possible that doing each strategy as a block can be better
+        selected = 0
+        current_division = 0
+        for particle in range(number_of_particles): 
+            for copy in range(number_of_copies[particle]):
+                resample[selected] = particle
+                selected += 1
+            if positions[current_division] <= cumulative_sum[particle]:
+                resample[selected] = particle
+                selected += 1
+                current_division +=1 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------    Terminate Program    ----------------------------
