@@ -124,6 +124,11 @@ def get_measurements():
     # Close pins for bit bang reading of serial data
     pi.bb_serial_read_close(14)
     pi.bb_serial_read_close(15)
+    
+    # Return values
+    return (IEEE_0_start, IEEE_0_end,
+            IEEE_1_start, IEEE_1_end,
+            encoder_0, encoder_1, encoder_2)
 
 # Used for predicting IEEE 802.15.4a values based on state values of a particle
 def predict_IEEE(position_x, position_y, velocity_x, velocity_y):
@@ -296,6 +301,13 @@ for particle in range(number_of_particles):
 # Initialize the weights with zeros
 weight = np.zeros((number_of_particles, 1), dtype = float)
 
+# Initialize the temporary weights due to IEEE 802.15.4a and encoder values
+weight_IEEE = np.zeros((number_of_particles, 1), dtype = float)
+weight_encoder = np.zeros((number_of_particles, 1), dtype = float)
+
+# Initialize the temporary array for storing index for resampling
+resample = np.zeros((number_of_particles, 1), dtype = float)
+
 # The weights for the initial particles are equal
 for particle in range(number_of_particles):
     weight[particle] = 1 / number_of_particles
@@ -305,7 +317,9 @@ for particle in range(number_of_particles):
 #------------------------------------------------------------------------------
 
 # Get IEEE 802.15.4a and encoder values
-get_measurements()
+(IEEE_0_start, IEEE_0_end,
+ IEEE_1_start, IEEE_1_end,
+ encoder_0, encoder_1, encoder_2) = get_measurements()
 
 # Prepare the matrix for storing predicted measurements
 IEEE = np.zeros((number_of_particles, 2), dtype = float)
@@ -341,11 +355,6 @@ while True:
                                      (number_of_particles, 4))
     
     for particle in range(number_of_particles):
-        # update the state of the particle based on noise and previous state
-        state_update = np.matmul(state_factor, state_matrix[particle][0]) 
-        noise_update = np.matmul(noise_factor, noise_process[particle])
-        state_matrix[particle] = np.add(state_update, noise_update)
-        
         # IEEE_0_start, IEEE_0_end, IEEE_1_start, IEEE_1_end
         IEEE[particle] = predict_IEEE(state_matrix[particle][0],
                                       state_matrix[particle][1],
@@ -354,31 +363,70 @@ while True:
         
         # encoder_0, encoder_1, encoder_2
         encoder[particle] = predict_encoder(state_matrix[particle][2], 
-                                            state_matrix[particle][3])   
+                                            state_matrix[particle][3]) 
+        
+        # Update the state of the particle based on noise and previous state
+        # The previous state was used for measurement prediction
+        # The basis for this is page 47 of 978-1580536318/158053631X
+        state_update = np.matmul(state_factor, state_matrix[particle][0]) 
+        noise_update = np.matmul(noise_factor, noise_process[particle])
+        state_matrix[particle] = np.add(state_update, noise_update)
     
 #------------------------------------------------------------------------------
 # Actual measurement
 #------------------------------------------------------------------------------
 
     # Get IEEE 802.15.4a and encoder values
-    get_measurements()
+    (IEEE_0_start, IEEE_0_end,
+     IEEE_1_start, IEEE_1_end,
+     encoder_0, encoder_1, encoder_2) = get_measurements()
     
 #------------------------------------------------------------------------------
-# Modify weights using d importance function
+# Modify the weights
 #------------------------------------------------------------------------------
 
     # Randomize measurement noise
     noise_measurement = np.random.normal(0, np.sqrt(covariance_measurement),
                                          (number_of_particles, 1))  
     
-    # Update the weights
+    # Update the weights based on IEEE 802.15.4a values
     for particle in range(number_of_particles):
-        weights_update = 1
+        difference = np.mean(np.subtract(np.array([IEEE_0_start, IEEE_0_end,
+                                                   IEEE_1_start, IEEE_1_end]),
+                                         IEEE[particle]))                               
+        weight_IEEE[particle] = (weight[particle] * difference *
+                                 noise_measurement[particle])
+        
+    # Normalize IEEE 802.15.4a weights 
+    weight_total = np.sum(weight_IEEE)
+    for particle in range(number_of_particles):
+        weight_IEEE[particle] = weight_IEEE[particle] / weight_total
+
+    # Update the weights based on encoder values
+    for particle in range(number_of_particles):
+        difference = np.mean(np.subtract(np.array([encoder_0, 
+                                                   encoder_1, 
+                                                   encoder_2]),
+                                         encoder[particle]))                        
+        weight_encoder[particle] = (weight[particle] * difference * 
+                                    noise_measurement[particle])
          
-    # Normalize weights
-    weight_total = np.sum(weight)
+    # Normalize encoder weights
+    weight_total = np.sum(weight_encoder)
     for particle in range(number_of_particles):
-        weight[particle] = weight[particle] / weight_total
+        weight_encoder[particle] = weight_encoder[particle] / weight_total
+        
+    # Get the mean IEEE 802.15.4a weights and encoder weights
+    # This is needed because the two sensor values cannot be directly averaged
+    # The normalized weights, however, can be averaged quite easily
+    ''' 
+    This will supposedly create a 3D array from the two [n, 1] arrays.
+    Selecting axis = 0 in this case will make the average act between the
+    two arrays.
+    However, check if this instead creates a 2D array with a dimension of 
+    [n, 2]. This will instead require the use of axis = 1.
+    '''
+    weight = np.mean(np.array([weight_IEEE, weight_encoder]), axis = 0)
         
 #------------------------------------------------------------------------------
 # Output sensor-fused value
@@ -408,7 +456,36 @@ while True:
     effective_number_of_particles = 1 / np.sum(np.power(weight, 2))
     
     if effective_number_of_particles < 2/3 * number_of_particles:
-        resample = 1
+        # The systematic within residual resampling method is used
+        # The basis for this is page 21 of by Murray Pollock's 
+        # “Introduction to Particle Filtering” Discussion - Notes
+        
+        # Get the integer part and the residual part of the scaled weights
+        (number_of_copies, residual) = np.divmod(number_of_particles * weight)
+        
+        # Get the needed values for the resampling method
+        residual = residual / np.sum(residual)
+        cumulative_sum = np.cumsum(residual)
+        divisions = number_of_particles - np.sum(number_of_copies)
+        positions = (np.linspace(0, 1, divisions, endpoint = False) +
+                     (np.random.random() / divisions))
+        
+        # Make sure that the sequence ends with 1 (not more or less)
+        cumulative_sum[-1] = 1
+        
+        # Evaluate the particles based on the determined values
+        # Conducted residual and systematic strategies per particle
+        # It may be possible that doing each strategy as a block can be better
+        selected = 0
+        current_division = 0
+        for particle in range(number_of_particles): 
+            for copy in range(number_of_copies[particle]):
+                resample[selected] = particle
+                selected += 1
+            if positions[current_division] <= cumulative_sum[particle]:
+                resample[selected] = particle
+                selected += 1
+                current_division +=1 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------    Terminate Program    ----------------------------
