@@ -305,8 +305,10 @@ weight = np.zeros((number_of_particles, 1), dtype = float)
 weight_IEEE = np.zeros((number_of_particles, 1), dtype = float)
 weight_encoder = np.zeros((number_of_particles, 1), dtype = float)
 
-# Initialize the temporary array for storing index for resampling
+# Initialize the temporary arrays for resampling
 resample = np.zeros((number_of_particles, 1), dtype = float)
+weight_resample = np.zeros((number_of_particles, 1), dtype = float)
+state_matrix_resample = np.zeros((number_of_particles, 4), dtype = float)
 
 # The weights for the initial particles are equal
 for particle in range(number_of_particles):
@@ -475,6 +477,7 @@ while True:
         
         # Evaluate the particles based on the determined values
         # Conducted residual and systematic strategies per particle
+        # This makes it easier to count the number of identical samples
         # It may be possible that doing each strategy as a block can be better
         selected = 0
         current_division = 0
@@ -486,6 +489,14 @@ while True:
                 resample[selected] = particle
                 selected += 1
                 current_division +=1 
+                
+        # Update the state matrix
+        state_matrix_resample = np.take(state_matrix, resample)
+        state_matrix = state_matrix_resample
+        
+        # Update the weights
+        weight_resample = np.take(weight, resample)
+        weight = weight_resample
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------    Terminate Program    ----------------------------
