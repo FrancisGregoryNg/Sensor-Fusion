@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.random import uniform
 import csv
-import pigpio
-import time
+'''import pigpio'''
+'''import time'''
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------   Function Definitions  ----------------------------
@@ -10,18 +10,27 @@ import time
 
 # Used for getting the index of the closes pairs of values in a nx2 matrix
 def bestfit(matrix, value_0, value_1):
-    value = (value_0, value_1)
-    index = ((x ** 2 + y ** 2) for (x, y) in (matrix-value)).argmin
+    # Create an array of ones for use in computations
+    ones = np.ones((np.size(matrix, axis = 0), 1), dtype = float)
+    
+    # Create a 2D array using value_0 and value_1
+    value = np.concatenate((value_0 * ones, value_1 * ones), axis = 1)
+    
+    # Get the best fit based on distance
+    difference = np.subtract(matrix, value)
+    distance = np.add(np.power(difference[:, 0], 2), 
+                      np.power(difference[:, 1], 2))
+    index = np.argmin(distance)
     return index
 
 # Used for getting the position using the IEEE 802.15.4a values
 def get_position(IEEE_0_start, IEEE_0_end, IEEE_1_start, IEEE_1_end):
     # find the most similar signal signature from database, then get the mean
     database
-    index_start = bestfit(database, IEEE_0_start, IEEE_1_start)
-    index_end = bestfit(database, IEEE_0_end, IEEE_1_end)
-    (x_start, y_start) = locations(index_start)
-    (x_end, y_end) = locations(index_end)
+    index_start = bestfit(signal_map, IEEE_0_start, IEEE_1_start)
+    index_end = bestfit(signal_map, IEEE_0_end, IEEE_1_end)
+    (x_start, y_start) = location[index_start]
+    (x_end, y_end) = location[index_end]
     position_x = (x_start + x_end) / 2
     position_y = (y_start + y_end) / 2
     return position_x, position_y
@@ -47,16 +56,17 @@ def get_velocity(encoder_0, encoder_1, encoder_2):
     velocity_y = (velocity_y / T) * np.pi * diameter * 0.5 / 360
     return velocity_x, velocity_y
 
+'''
 # Used for gettting the sensor measurements
 def get_measurements():
     # Open pins for bit bang reading of serial data
     pi.bb_serial_read_open(14, 115200)
-    pi.bb_serial_read_open(15, 115200)
+    pi.bb_serial_read_open(15, 115200) 
     
     # IEEE 802.15.4a signals are taken before the encoder logging time
     # Base signal strength on the number of bytes read, ignore bytearray
-    (IEEE_0_start, temp_data_0) = pi.bb_serial_read()
-    (IEEE_1_start, temp_data_1) = pi.bb_serial_read()
+    IEEE_0_start, temp_data_0) = pi.bb_serial_read()
+    (IEEE_1_start, temp_data_1) = pi.bb_serial_read() 
     
     # Close pins for bit bang reading of serial data
     pi.bb_serial_read_close(14)
@@ -73,7 +83,7 @@ def get_measurements():
     # Take the initial measurements
     current_0 = sequence.index((pi.read(5), pi.read(6))) 
     current_1 = sequence.index((pi.read(12), pi.read(13))) 
-    current_2 = sequence.index((pi.read(19), pi.read(26))) 
+    current_2 = sequence.index((pi.read(19), pi.read(26)))
     
     # Loop until timeout occurs
     # Measurement is assumed to be quick enough to record increments of 1 or -1 
@@ -129,11 +139,11 @@ def get_measurements():
     return (IEEE_0_start, IEEE_0_end,
             IEEE_1_start, IEEE_1_end,
             encoder_0, encoder_1, encoder_2)
-
+'''
 # Used for predicting IEEE 802.15.4a values based on state values of a particle
 def predict_IEEE(position_x, position_y, velocity_x, velocity_y):
     # Get the scale of acceptable offset for the x position      
-    grid_resolution_x = room_width / (np.size(locations, 0) -1)    
+    grid_resolution_x = room_width / (np.size(location, 0) -1)    
     scale_x = np.round(velocity_x / grid_resolution_x)
     if not(0 <= position_x + scale_x * grid_resolution_x <= room_width and
            0 <= position_x - scale_x * grid_resolution_x <= room_width):
@@ -144,7 +154,7 @@ def predict_IEEE(position_x, position_y, velocity_x, velocity_y):
             scale_x = 0   
             
     # Get the scale of acceptable offset for the y position   
-    grid_resolution_y = room_length / (np.size(locations, 1) -1)    
+    grid_resolution_y = room_length / (np.size(location, 1) -1)    
     scale_y = np.round(velocity_y / grid_resolution_y)
     if not(0 <= position_y + scale_y * grid_resolution_y <= room_length and
            0 <= position_y - scale_y * grid_resolution_y <= room_length):
@@ -161,12 +171,12 @@ def predict_IEEE(position_x, position_y, velocity_x, velocity_y):
     position_y_end = position_y + scale_y * grid_resolution_y 
      
     # Get the corresponding index for the positions
-    index_start = bestfit(locations, position_x_start, position_y_start)
-    index_end = bestfit(locations, position_x_end, position_y_end)
+    index_start = bestfit(location, position_x_start, position_y_start)
+    index_end = bestfit(location, position_x_end, position_y_end)
     
     # Get the corresponding IEEE 802.15.4a signals
-    IEEE_0_start, IEEE_1_start= database(index_start)
-    IEEE_0_end, IEEE_1_end = database(index_end)
+    IEEE_0_start, IEEE_1_start = signal_map[index_start]
+    IEEE_0_end, IEEE_1_end = signal_map[index_end]
     return IEEE_0_start, IEEE_0_end, IEEE_1_start, IEEE_1_end
 
 # Used for predicting encoder values based on state values of a particle
@@ -177,7 +187,7 @@ def predict_encoder(velocity_x, velocity_y):
     # velocity_y    = 0.57735 * encoder_0_for_y
     #               = 0.57735 * encoder_1_for_y
     velocity_x = (velocity_x * T) / (np.pi * diameter * 0.5 / 360)
-    velocity_y = (velocity_x * T) / (np.pi * diameter * 0.5 / 360)
+    velocity_y = (velocity_y * T) / (np.pi * diameter * 0.5 / 360)
     encoder_0 = (velocity_y + 2 * velocity_x) / 0.57735
     encoder_1 = (velocity_y + 2 * velocity_x) / 0.57735
     encoder_2 = velocity_x
@@ -190,7 +200,7 @@ def predict_encoder(velocity_x, velocity_y):
 #------------------------------------------------------------------------------
 # Configure the pin connections
 #------------------------------------------------------------------------------
-
+'''
 # Use pigpio daemon to control general-purpose input/outputs more freely
 pi = pigpio.pi()
 
@@ -209,7 +219,7 @@ pi.set_mode( 13, pigpio.INPUT)
 # Set pin A of encoder_2 (board 35, BCM 19) as input
 pi.set_mode( 19, pigpio.INPUT)
 # Set pin B of encoder_2 (board 37, BCM 26) as input
-pi.set_mode( 26, pigpio.INPUT)
+pi.set_mode( 26, pigpio.INPUT)'''
 
 # Define the sequence of encoder values (cycles every 2 degrees of rotation)
 sequence = ((0,0), (0,1), (1,1), (1,0))
@@ -220,22 +230,26 @@ sequence = ((0,0), (0,1), (1,1), (1,0))
 
 # Initialize the signal mapping matrix and the corresponding location matrix
 signal_map = np.zeros((1,2), dtype = float)
-locations = np.zeros((1,2), dtype = float)
+location = np.zeros((1,2), dtype = float)
     
 # Copy data from the .csv files onto the corresponding matrices
 with open('IEEE_signal_database.csv') as database:
     read_database = csv.DictReader(database)
     for row in read_database:
-        signal_map = np.append([[row['IEEE_0'], row['IEEE_1']]], axis = 0)
+        signal_map = np.append(signal_map, 
+                               [[float(row['IEEE_0']), float(row['IEEE_1'])]], 
+                               axis = 0)
        
-with open('IEEE_matching_locations.csv') as locations:
-    read_locations = csv.DictReader(locations)
+with open('IEEE_matching_locations.csv') as matching_locations:
+    read_locations = csv.DictReader(matching_locations)
     for row in read_locations:
-        locations = np.append([[row['x'], row['y']]], axis = 0)
+        location = np.append(location, 
+                              [[float(row['x']), float(row['y'])]], 
+                              axis = 0)
         
 # Delete the initial zero-value rows of the matrices
 signal_map = np.delete(signal_map, (0), axis = 0)
-locations = np.delete(locations, (0), axis = 0)
+location = np.delete(location, (0), axis = 0)
 
 #------------------------------------------------------------------------------
 # Set values
@@ -247,12 +261,13 @@ number_of_particles = 1000
 # the room dimensions (width, length) correspond to (x, y)
 # the origin starts at a selected corner of the room
 # the measurement unit is in millimeters (mm)
-room_width = 5000
-room_length = 5000
+room_width = 2000
+room_length = 2000
 
 # the maximum speed limit of the AGV is estimated (the lower the better)
 # the measurement unit is in millimeters per second (mm/s)
-max_speed = 1000
+''' figure out how to incorporate this in noise calculations '''
+max_speed = 1000   
 
 # the diameter of each omni-wheel is in millimeters (mm)
 diameter = 10
@@ -319,9 +334,9 @@ for particle in range(number_of_particles):
 #------------------------------------------------------------------------------
 
 # Get IEEE 802.15.4a and encoder values
-(IEEE_0_start, IEEE_0_end,
+'''(IEEE_0_start, IEEE_0_end,
  IEEE_1_start, IEEE_1_end,
- encoder_0, encoder_1, encoder_2) = get_measurements()
+ encoder_0, encoder_1, encoder_2) = get_measurements()'''
 
 # Prepare the matrix for storing predicted measurements
 IEEE = np.zeros((number_of_particles, 2), dtype = float)
@@ -341,6 +356,62 @@ noise_factor = np.array([[0.5 * T **2, 0.5 * T **2],
                          [T, T],
                          [T, T]])
 
+#------------------------------------------------------------------------------
+# Conduct tests
+#------------------------------------------------------------------------------
+
+# IEEE 802.15.4a testing
+IEEE_0_start = np.random.uniform(0, 255)
+IEEE_0_end = np.random.uniform(0, 255)
+IEEE_1_start = np.random.uniform(0, 255)
+IEEE_1_end = np.random.uniform(0, 255)
+print("IEEE_0_start:", IEEE_0_start)
+print("IEEE_0_end:", IEEE_0_end)
+print("IEEE_1_start:", IEEE_1_start)
+print("IEEE_1_end:", IEEE_1_end)
+position = get_position(IEEE_0_start, IEEE_0_end, 
+                        IEEE_1_start, IEEE_1_end)
+print("position: ", str(position))
+i = bestfit(signal_map, IEEE_0_start, IEEE_1_start)
+j = bestfit(signal_map, IEEE_0_end, IEEE_1_end)
+print("location[i]: ", location[i])
+print("location[j]: ", location[j])
+
+# encoder testing
+encoder_0 = np.random.uniform(0, 500)
+encoder_1 = np.random.uniform(0, 500)
+encoder_2 = np.random.uniform(0, 500)
+print("encoder_0:", encoder_0)
+print("encoder_1:", encoder_1)
+print("encoder_2:", encoder_2)
+velocity = get_velocity(encoder_0, encoder_1, encoder_2)
+print("velocity: ", str(velocity))
+
+# measurement prediction testing
+position_x = np.random.uniform(0, 2000)
+position_y = np.random.uniform(0, 2000)
+velocity_x = np.random.uniform(0, 50)
+velocity_y = np.random.uniform(0, 50)
+print("position_x:", position_x)
+print("position_y:", position_y)
+print("velocity_x:", velocity_x)
+print("velocity_y:", velocity_y)
+IEEE = predict_IEEE(position_x, position_y, velocity_x, velocity_y)
+encoder = predict_encoder(velocity_x, velocity_y)
+print("IEEE: ", str(IEEE))
+print("encoder", str(encoder))    
+position_x_resolve, position_y_resolve = get_position(IEEE[0], IEEE[1], 
+                                                      IEEE[2], IEEE[3])
+velocity_x_resolve, velocity_y_resolve = get_velocity(encoder[0], 
+                                                      encoder[1], 
+                                                      encoder[2])
+print("position_x_resolve: ", str(position_x_resolve))
+print("position_y_resolve: ", str(position_y_resolve))
+print("velocity_x_resolve", str(velocity_x_resolve))    
+print("velocity_y_resolve", str(velocity_y_resolve)) 
+
+    
+'''
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------  Main Loop (Iterations) ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -421,13 +492,13 @@ while True:
     # Get the mean IEEE 802.15.4a weights and encoder weights
     # This is needed because the two sensor values cannot be directly averaged
     # The normalized weights, however, can be averaged quite easily
-    ''' 
+    ''' '''
     This will supposedly create a 3D array from the two [n, 1] arrays.
     Selecting axis = 0 in this case will make the average act between the
     two arrays.
     However, check if this instead creates a 2D array with a dimension of 
     [n, 2]. This will instead require the use of axis = 1.
-    '''
+    ''' '''
     weight = np.mean(np.array([weight_IEEE, weight_encoder]), axis = 0)
         
 #------------------------------------------------------------------------------
@@ -504,3 +575,4 @@ while True:
 
 # Release pigpio resources
 pi.stop()
+'''

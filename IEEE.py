@@ -133,10 +133,10 @@ with open('IEEE_signal_database.csv', 'w') as database:
     write_database.writeheader()
 
     for run in range(number_of_datapoints):
-        IEEE_0 = signal_0[run]
-        IEEE_1 = signal_1[run]
-        x_entry = x[run]
-        y_entry = y[run]
+        IEEE_0 = float(signal_0[run])
+        IEEE_1 = float(signal_1[run])
+        x_entry = float(x[run])
+        y_entry = float(y[run])
         write_database.writerow({'IEEE_0': IEEE_0, 'IEEE_1': IEEE_1,
                                  'x': x_entry, 'y': y_entry,})
         run = run + 1
