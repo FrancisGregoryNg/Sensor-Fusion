@@ -56,6 +56,91 @@ with open('IEEE_matching_locations.csv', 'w') as locations:
             y = y + grid_precision
         counter += 1
         
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#--------------------  Synthesize IEEE signal signature  ----------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+# Define location of IEEE 802.15.4a transmitters
+transmitter_0 = (1000, 1000)
+transmitter_1 = (2000, 2000)
+
+# Set expected range for signal values (noise could make actual values exceed)
+signal_min = 0
+signal_max = 255
+signal_range = signal_max - signal_min
+
+# Initialize empty arrays
+signal_0 = np.zeros((number_of_datapoints, 1), dtype = float)
+signal_1 = np.zeros((number_of_datapoints, 1), dtype = float)
+x = np.zeros((number_of_datapoints, 1), dtype = float)
+y = np.zeros((number_of_datapoints, 1), dtype = float)
+
+# Create an arry of ones for use in computations
+ones = np.ones((number_of_datapoints, 1), dtype = float)
+
+# Start with the origin
+x_index, y_index = 0, 0
+x_value, y_value = 0, 0
+
+# Monitor the reversals because the progression is done in a snake-like manner
+direction = 1 
+counter = 1
+
+# Run the loop to progress through the grid in a snake-like manner
+for run in range(number_of_datapoints):
+    (x[x_index], y[y_index]) = (x_value, y_value)
+    x_index += 1
+    y_index += 1
+    if counter < size_of_x:
+        x_value = x_value + direction * grid_precision
+    else:
+        direction = direction * -1
+        counter = 0
+        y_value = y_value + grid_precision
+    counter += 1
+
+# Calculate the signal scale based on the distance from the transmitter
+scale_0 = np.sqrt(np.add(np.subtract(x, (transmitter_0[0] * ones)) ** 2, 
+                         np.subtract(y, (transmitter_0[1] * ones)) ** 2))
+scale_1 = np.sqrt(np.add(np.subtract(x, (transmitter_1[0] * ones)) ** 2,  
+                         np.subtract(y, (transmitter_1[1] * ones)) ** 2))
+
+# Normalize the signal scale
+scale_0 = scale_0 / np.amax(scale_0)
+scale_1 = scale_1 / np.amax(scale_1)
+
+# Shift the signal scale (closer = stronger)
+scale_0 = np.amax(scale_0) - scale_0
+scale_1 = np.amax(scale_1) - scale_1
+
+# Generate noise
+mean = 0
+standard_deviation = 10
+noise_0 = np.random.normal(mean, standard_deviation, (number_of_datapoints, 1))
+noise_1 = np.random.normal(mean, standard_deviation, (number_of_datapoints, 1))
+
+# Calculate the signals
+signal_0 = np.sum([(signal_min * ones), (signal_range * scale_0), noise_0], 
+                   axis = 0)
+signal_1 = np.sum([(signal_min * ones), (signal_range * scale_1), noise_1], 
+                   axis = 0)
+
+# Log the data directly onto the .csv file
+with open('IEEE_signal_database.csv', 'w') as database:
+    sensors = ['IEEE_0', 'IEEE_1', 'x', 'y']
+    write_database = csv.DictWriter(database, fieldnames = sensors,
+                                    lineterminator = '\n')
+    write_database.writeheader()
+
+    for run in range(number_of_datapoints):
+        IEEE_0 = signal_0[run]
+        IEEE_1 = signal_1[run]
+        x_entry = x[run]
+        y_entry = y[run]
+        write_database.writerow({'IEEE_0': IEEE_0, 'IEEE_1': IEEE_1,
+                                 'x': x_entry, 'y': y_entry,})
+        run = run + 1
+
 '''
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------  IEEE signal signature  ----------------------------
