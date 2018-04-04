@@ -1,13 +1,13 @@
 Schematic and PCB Check Report
 ------------------------------
 
-Report Written:     Thursday, March 08, 2018
-Project Path:       D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.prj
-Design Path:        D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.pcb
+Report Written:     Tuesday, April 03, 2018
+Project Path:       D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical\SensorFusionBot.prj
+Design Path:        D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical\SensorFusionBot.pcb
 Design Title:       
 Created:            3/6/2018 1:16:08 PM
-Last Saved:         3/8/2018 12:45:30 PM
-Editing Time:       574 min
+Last Saved:         3/8/2018 2:56:34 PM
+Editing Time:       694 min
 Units:              thou (precision 0)
 
 

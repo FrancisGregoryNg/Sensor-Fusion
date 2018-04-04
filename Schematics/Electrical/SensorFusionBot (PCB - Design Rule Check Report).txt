@@ -1,21 +1,53 @@
 Design Rule Check Report
 ------------------------
 
-Report Written:     Thursday, March 08, 2018
-Project Path:       D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.prj
-Design Path:        D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.pcb
+Report Written:     Tuesday, April 03, 2018
+Project Path:       D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical\SensorFusionBot.prj
+Design Path:        D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical\SensorFusionBot.pcb
 Design Title:       
 Created:            3/6/2018 1:16:08 PM
-Last Saved:         3/8/2018 2:51:09 PM
-Editing Time:       688 min
+Last Saved:         3/8/2018 2:56:34 PM
+Editing Time:       699 min
 Units:              thou (precision 0)
 
 
 Results
 =======
 
+Gap in Net "GND" between (8942,9674) and (8942,9774) 
+    GND.
+Gap in Net "GND" between (8942,9674) and (9242,9674) 
+    GND.
+Gap in Net "GND" between (9242,9674) and (9242,9774) 
+    GND.
+Gap in Net "GND" between (8942,9674) and (8664,9416) 
+    GND.
+Gap in Net "GND" between (9242,9774) and (9592,10290) 
+    GND.
+Gap in Net "GND" between (10123,10505) and (10051,10776) 
+    GND.
+Gap in Net "GND" between (10051,10776) and (9851,10876) 
+    GND.
+Gap in Net "GND" between (9851,10876) and (9651,10776) 
+    GND.
+Gap in Net "GND" between (9651,10776) and (9351,10776) 
+    GND.
+Gap in Net "GND" between (9351,10776) and (9335,10647) 
+    GND.
+Gap in Net "GND" between (9256,10648) and (9051,10876) 
+    GND.
+Gap in Net "GND" between (9051,10876) and (8851,10776) 
+    GND.
+Gap in Net "GND" between (8851,10776) and (8651,10776) 
+    GND.
+Gap in Net "GND" between (8651,10776) and (8351,10876) 
+    GND.
+Gap in Net "GND" between (8664,9416) and (8642,8626) 
+    GND.
+Gap in Net "GND" between (8642,8626) and (9331,8626) 
+    GND.
 
-No errors found
+Number of errors found : 16
 
 
 Settings
