@@ -8,32 +8,51 @@ import csv
 #-------------------------   Function Definitions  ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Used for getting the index of the closes pairs of values in a nx2 matrix
-def bestfit(matrix, value_0, value_1):
-    # Create an array of ones for use in computations
-    ones = np.ones((np.size(matrix, axis = 0), 1), dtype = float)
-    
-    # Create a 2D array using value_0 and value_1
-    value = np.concatenate((value_0 * ones, value_1 * ones), axis = 1)
-    
-    # Get the best fit based on distance
-    difference = np.subtract(matrix, value)
-    distance = np.add(np.power(difference[:, 0], 2), 
-                      np.power(difference[:, 1], 2))
-    index = np.argmin(distance)
-    return index
-
 # Used for getting the position using the IEEE 802.15.4a values
 def get_position(IEEE_0_start, IEEE_0_end, IEEE_1_start, IEEE_1_end):
-    # find the most similar signal signature from database, then get the mean
-    database
-    index_start = bestfit(signal_map, IEEE_0_start, IEEE_1_start)
-    index_end = bestfit(signal_map, IEEE_0_end, IEEE_1_end)
-    (x_start, y_start) = location[index_start]
-    (x_end, y_end) = location[index_end]
+    # Use the empirically-determined factor for the inverse-square law
+    # signal_strength = factor * (1 / distance ^ 2)
+    # Transmitter 0 is located at (min_x, max_y) or (0, room_length)
+    # Transmitter 1 is located at (max_x, max_y) or (room_width, room_length)
+    distance_0_start = np.sqrt(factor_0 / IEEE_0_start)  
+    distance_1_start = np.sqrt(factor_1 / IEEE_1_start)
+    distance_0_end = np.sqrt(factor_0 / IEEE_0_end)
+    distance_1_end = np.sqrt(factor_1 / IEEE_1_end)
+    # According to the SSS theorem, the angles of the triangle can be computed
+    # Use the law of cosines: c ** 2 = a ** 2 + b ** 2 - 2 * a * b * cos(C)
+    # Let angle_0 and angle_1 be the angles with respect to the horizontal
+    # These are oriented so as to range from 0 to 90 degrees
+    angle_0_start = np.arccos((room_length ** 2
+                               + distance_0_start ** 2
+                               - distance_1_start ** 2)
+                              / 2 * room_length * distance_0_start)
+    angle_1_start = np.arccos((room_length ** 2
+                               + distance_1_start ** 2
+                               - distance_0_start ** 2)
+                              / 2 * room_length * distance_1_start)                       
+    angle_0_end = np.arccos((room_length ** 2
+                             + distance_0_end ** 2
+                             - distance_1_end ** 2)
+                            / 2 * room_length * distance_0_end)
+    angle_1_end = np.arccos((room_length ** 2
+                             + distance_1_end ** 2
+                             - distance_0_end ** 2)
+                            / 2 * room_length * distance_1_end)
+    # Theoretically, only angles from one transmitter are needed
+    # However, the calculation is not so heavy so the average may be taken
+    x_start = (distance_0_start * np.cos(angle_0_start)
+               + (room_width - distance_1_start * np.cos(angle_1_start))) / 2          
+    y_start = ((room_length - distance_0_start * np.sin(angle_0_start))
+               + (room_length - distance_1_start * np.sin(angle_1_start)))/2
+    x_end = (distance_0_end * np.cos(angle_0_end)
+             + (room_width - distance_1_end * np.cos(angle_1_end))) / 2
+    y_end = ((room_length - distance_0_end * np.sin(angle_0_end))
+             + (room_length - distance_1_end * np.sin(angle_1_end)))/2
+    # Get the location between the start and end points
     position_x = (x_start + x_end) / 2
     position_y = (y_start + y_end) / 2
     return position_x, position_y
+-------------------------------------------------------------------------------
 
 # Used for getting the position using the three encoder values
 def get_velocity(encoder_0, encoder_1, encoder_2):
