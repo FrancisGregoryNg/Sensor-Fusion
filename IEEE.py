@@ -108,10 +108,14 @@ y = np.random.uniform(0, room_length, (number_of_datapoints, 1))
 ones = np.ones((number_of_datapoints, 1), dtype = float)
 
 # Calculate the distances from the transmitters
-distance_0 = np.sqrt(np.add(np.subtract(x, (transmitter_0[0] * ones)) ** 2, 
-                            np.subtract(y, (transmitter_0[1] * ones)) ** 2))
-distance_1 = np.sqrt(np.add(np.subtract(x, (transmitter_1[0] * ones)) ** 2,  
-                            np.subtract(y, (transmitter_1[1] * ones)) ** 2))
+distance_0 = np.sqrt(np.add(np.power(np.subtract(x, (transmitter_0[0] * ones)),
+                                     2),
+                            np.power(np.subtract(y, (transmitter_0[1] * ones)),
+                                     2)))
+distance_1 = np.sqrt(np.add(np.power(np.subtract(x, (transmitter_1[0] * ones)),
+                                     2),
+                            np.power(np.subtract(y, (transmitter_1[1] * ones)),
+                                     2)))
 
 # Set expected range for signal values (noise could make actual values exceed)
 signal_min = 0

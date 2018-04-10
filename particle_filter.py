@@ -72,7 +72,7 @@ def get_measurements():
     
     # IEEE 802.15.4a signals are taken before the encoder logging time
     # Base signal strength on the number of bytes read, ignore bytearray
-    IEEE_0_start, temp_data_0) = pi.bb_serial_read()
+    (IEEE_0_start, temp_data_0) = pi.bb_serial_read()
     (IEEE_1_start, temp_data_1) = pi.bb_serial_read() 
     
     # Close pins for bit bang reading of serial data
@@ -258,6 +258,36 @@ T = 1
 # covariance of process noise and measurement noise (guess: between 0 and 10)
 covariance_process = 10 * np.random.random()
 covariance_measurement = 10 * np.random.random()
+
+#------------------------------------------------------------------------------
+# Calculate proportionality factors for signal strength
+#------------------------------------------------------------------------------
+# Calculate the factor for the inverse-square law
+# signal_strength = factor * (1 / distance ** 2)
+# Transmitter 0 is located at (min_x, max_y) or (0, room_length)
+# Transmitter 1 is located at (max_x, max_y) or (room_width, room_length)
+
+# Create an array of ones for use in computations
+ones = np.ones((signal.shape[1], 1), dtype = float)
+
+# Calculate the distances from the transmitters
+distance_0 = np.sqrt(np.add(np.power(np.subtract(location[:][0], 
+                                                 (room_width * ones)), 2), 
+                            np.power(np.subtract(location[:][1], 
+                                                 (room_length * ones)), 2)))
+distance_1 = np.sqrt(np.add(np.power(np.subtract(location[:][0], 
+                                                 (room_width * ones)), 2), 
+                            np.power(np.subtract(location[:][1], 
+                                                 (room_length * ones)), 2)))
+
+# Calculate the individual proportionality factors for each data point
+factor_0_individual = np.multiply(signal[:][0], np.power(distance_0, 2))
+factor_1_individual = np.multiply(signal[:][1], np.power(distance_1, 2))
+
+# Set the central tendency as the general proportionality factor 
+factor_0 = np.median(factor_0_individual)
+factor_1 = np.median(factor_1_individual)
+
 '''
 #------------------------------------------------------------------------------
 # Draw samples from a uniform distribution (initial distribution)
