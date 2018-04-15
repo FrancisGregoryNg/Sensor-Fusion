@@ -4,10 +4,16 @@ import pigpio
 pi = pigpio.pi()
 
 # Open pins for bit bang reading of serial data
-# For IEEE_0: (board 8, BCM 14)
-# For IEEE_1: (board 10, BCM 15)
-pi.bb_serial_read_open(14, 115200)
-pi.bb_serial_read_open(15, 115200) 
+# For IEEE_0: (board 16, BCM 23)
+# For IEEE_1: (board 18, BCM 24)
+# pi.bb_serial_read_open(14, 9600) --> outputs an error, apparently not needed
+# pi.bb_serial_read_open(15, 9600) --> outputs an error, apparently not needed 
 
-(IEEE_0_start, temp_data_0) = pi.bb_serial_read()
-(IEEE_1_start, temp_data_1) = pi.bb_serial_read() 
+(IEEE_0_start, temp_data_0) = pi.bb_serial_read(23)
+(IEEE_1_start, temp_data_1) = pi.bb_serial_read(24) 
+
+for run in range(0, 5):
+    print("IEEE_0_start: " + str(IEEE_0_start) + "\n")
+    print("temp_data_0: " + str(temp_data_0) + "\n")
+    print("IEEE_1_start: " + str(IEEE_1_start) + "\n")
+    print("temp_data_1: " + str(temp_data_1) + "\n")
