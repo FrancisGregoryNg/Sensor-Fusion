@@ -1,13 +1,13 @@
 Plot Report
 -----------
 
-Report Written:     Thursday, March 08, 2018
-Project Path:       D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.prj
-Design Path:        D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.pcb
+Report Written:     Monday, April 16, 2018
+Project Path:       D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical\SensorFusionBot.prj
+Design Path:        D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical\SensorFusionBot.pcb
 Design Title:       
 Created:            3/6/2018 1:16:08 PM
-Last Saved:         3/8/2018 2:56:34 PM
-Editing Time:       693 min
+Last Saved:         4/3/2018 2:57:44 PM
+Editing Time:       702 min
 Units:              thou (precision 0)
 
 
@@ -25,13 +25,14 @@ Symbol Details Yes
 Link Net Names Yes
 View PDF Yes
 All Colors Black Yes
+Embed Fonts Yes
 
 
 
 Plots Output
 ============
 
-    Plot Job: "D:\D Documents\Acads\Term11\MEE612M\Mobile Robot\Electrical\Vehicle\SensorFusionBot.mop"
+    Plot Job: "D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical\SensorFusionBot.mop"
 
 
 PDF Output
