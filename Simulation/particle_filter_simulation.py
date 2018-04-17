@@ -1,6 +1,6 @@
 import numpy as np
 import time
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import agv_library as agv
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -514,37 +514,38 @@ estimated_vertices_y = np.ndarray.tolist(estimated_plot_data[:, 1])
 #------------------------------------------------------------------------------
 
 # Subplot
-plt.pyplot.subplot(2,2,1)
-plt.pyplot.plot(actual_vertices_x, actual_vertices_y, 'r,-')
-plt.pyplot.title("Actual")
-plt.pyplot.subplot(2,2,2)
-plt.pyplot.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
-plt.pyplot.title("IEEE")
-plt.pyplot.subplot(2,2,3)
-plt.pyplot.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
-plt.pyplot.title("Encoder")
-plt.pyplot.subplot(2,2,4)
-plt.pyplot.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
-plt.pyplot.title("Estimate")
-plt.pyplot.tight_layout()
-plt.pyplot.show()
+plt.subplot(2,2,1)
+plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
+plt.title("Actual")
+plt.subplot(2,2,2)
+plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
+plt.title("IEEE")
+plt.subplot(2,2,3)
+plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
+plt.title("Encoder")
+plt.subplot(2,2,4)
+plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
+plt.title("Estimate")
+plt.tight_layout()
+plt.show()
 
 # Multiple plots
-plt.pyplot.plot(actual_vertices_x, actual_vertices_y, 'r,-')
-plt.pyplot.title("Actual")
-plt.pyplot.show()
-plt.pyplot.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
-plt.pyplot.title("IEEE")
-plt.pyplot.show()
-plt.pyplot.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
-plt.pyplot.title("Encoder")
-plt.pyplot.show()
-plt.pyplot.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
-plt.pyplot.title("Estimate")
-plt.pyplot.show()
+plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
+plt.title("Actual")
+plt.show()
+plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
+plt.title("IEEE")
+plt.show()
+plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
+plt.title("Encoder")
+plt.show()
+plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
+plt.title("Estimate")
+plt.show()
 
 # Overlapping plots
-plt.pyplot.plot(actual_vertices_x, actual_vertices_y, 'r,-')
-plt.pyplot.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
-plt.pyplot.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
-plt.pyplot.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
+plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
+plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
+plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
+plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
+plt.show()
