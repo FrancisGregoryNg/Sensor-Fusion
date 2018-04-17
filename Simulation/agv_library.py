@@ -1,6 +1,4 @@
 import random
-import matplotlib.path as Path
-import matplotlib.pyplot as plot
 
 class Vehicle:
     def __init__(self, wheelRadius, mass, friction, dt, initialX = 0, initialY = 0, initialVx = 0, initialVy = 0, initialOmegaX = 0, initialOmegaY = 0):
