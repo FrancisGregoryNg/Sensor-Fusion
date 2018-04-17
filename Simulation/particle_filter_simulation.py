@@ -1,11 +1,11 @@
 import numpy as np
 import time
 import matplotlib as plt
+import agv_library as agv
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------   Function Definitions  ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 def get_IEEE_plot_data(IEEE_0, IEEE_1):
     # Get the position using the IEEE 802.15.4a values
     
@@ -75,74 +75,52 @@ def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
 
 # Used for gettting the sensor measurements
 def get_measurements():
+    roboman.updateModel()
+    
     # Get IEEE at the start
-    '''
-    Get IEEE data
-    '''
-    IEEE_0_start = 0
-    IEEE_1_start = 0
+    IEEE_0_start, IEEE_1_start = roboman.readIEEE()
     
     # Set time for counter encoder rotations to T seconds (1 second)
     timeout = time.time() + T
     
-    # Initialize the encoder counter
-    encoder_0 = 0
-    encoder_1 = 0
-    
-    # Take the initial measurements by getting the index in the sequence list
-    '''
-    Get encoder data
-    '''
-    current_0 = sequence.index(0, 0) 
-    current_1 = sequence.index(0, 0) 
+    # Initialize the encoder
+    encoder_0_start, encoder_1_start = roboman.readEncoder()
     
     # Loop until timeout occurs
     # Measurement is assumed to be quick enough to record increments of 1 or -1 
     while time.time() < timeout:
-        
-        # Consider previous measurements
-        previous_0 = current_0
-        previous_1 = current_1
-        
-        # Update the current measurements
-        '''
-        Get encoder data
-        '''
-        current_0 = sequence.index(0, 0) 
-        current_1 = sequence.index(0, 0) 
-
-        # Update the current position
-        (encoder_0_A, encoder_0_B) = sequence(current_0)
-        (encoder_1_A, encoder_1_B) = sequence(current_1)
-        
-        # Increment the encoder value by difference of the two positions
-        increment_0 = (current_0 - previous_0)
-        increment_1 = (current_1 - previous_1)
-        
-        # Value is wrong by a factor of -1/3 upon passing a sequence endpoint
-        if increment_0 != (1 or -1):
-            increment_0 == increment_0 * (-1/3)
-        if increment_1 != (1 or -1):
-            increment_1 == increment_1 * (-1/3)
-            
-        # Update the encoder counter
-        encoder_0 += increment_0
-        encoder_1 += increment_1
+        roboman.updateModel()
+    
+    encoder_0_end, encoder_1_end = roboman.readEncoder()
     
     # Get IEEE again at the end
-    
-    '''
-    Get IEEE data
-    '''  
-    IEEE_0_end = 0
-    IEEE_1_end = 0
+    IEEE_0_end, IEEE_1_end = roboman.readIEEE()
     
     IEEE_0 = (IEEE_0_start + IEEE_0_end) / 2
     IEEE_1 = (IEEE_1_start + IEEE_1_end) / 2
     
+    encoder_0 = encoder_0_end - encoder_0_start
+    encoder_1 = encoder_1_end - encoder_1_start
+    
+    roboman.updateModel()
     # Return values
     return IEEE_0, IEEE_1, encoder_0, encoder_1
 
+# Get the signal equivalent of IEEE because simulation gives the position
+def get_IEEE(position_x, position_y):
+    # Given the positions, the distances to the transmitters can be calculated
+    # Transmitter 0 is located at (0, 0) or (0, 0)
+    # Transmitter 1 is located at (max_x, 0) or (room_width, 0)
+    distance_squared_0 = position_x ** 2 + position_y ** 2
+    distance_squared_1 = (position_x - room_width) ** 2 + position_y ** 2
+    
+    # Use the empirically-determined factor for the inverse-square law
+    # signal_strength = factor * (1 / distance ** 2)
+    IEEE_0 = factor_0 / distance_squared_0
+    IEEE_1 = factor_1 / distance_squared_1
+    
+    return IEEE_0, IEEE_1
+    
 # Used for predicting measurement values based on state values of a particle
 def predict_measurements(position_x, position_y, velocity_x, velocity_y): 
         
@@ -168,6 +146,7 @@ def predict_measurements(position_x, position_y, velocity_x, velocity_y):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------      Initialization     ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+roboman = agv.Vehicle(0.05, 1, 0.5, 0.01, 0, 0, 1, 10, 0, 0)
 
 starting_x = 0
 starting_y = 0
@@ -207,12 +186,12 @@ diameter = 50
 T = 1
 
 # covariance of process noise and measurement noise (guess: between 0 and 10)
-covariance_process = 10 * np.random.random()
-covariance_measurement = 10 * np.random.random()
+covariance_process = 0.25 * np.random.random()
+covariance_measurement = 0.25 * np.random.random()
 
 # proportionality factors for signal strength
-factor_0 = 0
-factor_1 = 0
+factor_0 = 5
+factor_1 = 5
 
 #------------------------------------------------------------------------------
 # Draw samples from a uniform distribution (initial distribution)
@@ -292,12 +271,16 @@ noise_factor = np.array([[0.5 * T **2, 0.5 * T **2],
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------  Main Loop (Iterations) ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+print("Start of main loop\n")
 # Repeat the loop for a given amount of time
-duration = 60
+duration = 30
+iteration = 0
+start = time.time()
 stop_loop = time.time() + duration
 while time.time() < stop_loop:
-
+    iteration += 1
+    print("Iteration # " + str(iteration), end = "")
+    print("; Time = " + str(time.time() - start))        
 #------------------------------------------------------------------------------
 # Measurement prediction
 #------------------------------------------------------------------------------
@@ -306,7 +289,7 @@ while time.time() < stop_loop:
     mean = 0
     standard_deviation_process = np.sqrt(covariance_measurement)
     noise_process = np.random.normal(mean, standard_deviation_process, 
-                                     (number_of_particles, 4))
+                                     (number_of_particles, 2))
     
     for particle in range(number_of_particles):
         # IEEE_0, IEEE_1, encoder_0, encoder_1
@@ -323,19 +306,22 @@ while time.time() < stop_loop:
     IEEE_0, IEEE_1, encoder_0, encoder_1 = get_measurements()
     
     # Get actual position from simulation
-    actual_position_x, actual_position_y = 0 , 0
+    actual_position_x, actual_position_y = roboman.readActual()
     
     # Actual position for plot data
-    np.concatenate((actual_plot_data, np.array([actual_position_x,
-                                                actual_position_y])),
+    np.concatenate((actual_plot_data, np.array([[actual_position_x,
+                                                 actual_position_y]])),
                     axis = 0)
     
     # Get position if only purely IEEE 802.15.4a data is used for localization
-    IEEE_position_x, IEEE_position_y = get_IEEE_plot_data(IEEE_0, IEEE_1)
+    IEEE_position_x, IEEE_position_y = IEEE_0, IEEE_1
+    
+    # Get the actual measurements because simulation gave positions
+    IEEE_0, IEEE_1 = get_IEEE(IEEE_0, IEEE_1)
     
     # Record IEEE position for plot data
-    np.concatenate((IEEE_plot_data, np.array([IEEE_position_x,
-                                              IEEE_position_y])),
+    np.concatenate((IEEE_plot_data, np.array([[IEEE_position_x,
+                                               IEEE_position_y]])),
                     axis = 0)
     
     # Get position if only purely encoder data is used for localization
@@ -345,9 +331,10 @@ while time.time() < stop_loop:
                                                  encoder_position_y)
         
     # Record encoder position for plot data
-    np.concatenate((encoder_plot_data, np.array([encoder_position_x,
-                                                 encoder_position_y])),
+    np.concatenate((encoder_plot_data, np.array([[encoder_position_x,
+                                                 encoder_position_y]])),
                     axis = 0)
+    
 #------------------------------------------------------------------------------
 # Modify the weights
 #------------------------------------------------------------------------------
@@ -365,7 +352,7 @@ while time.time() < stop_loop:
     # Take the average of the errors from the two sensors
     # Use the first two columns from the measurement prediction matrix
     IEEE = np.concatenate((IEEE_0 * ones, IEEE_1 * ones), axis = 1)
-    difference = np.mean(np.subtract(IEEE, predicted[:][1:3]), axis = 1)                               
+    difference = np.mean(np.subtract(IEEE, predicted[:, [0,1]]), axis = 1)                               
     weight_IEEE = np.multiply(np.multiply(weight, difference), 
                               noise_measurement)
         
@@ -377,7 +364,7 @@ while time.time() < stop_loop:
     # Take the average of the errors from the two sensors
     # Use the last two columns from the measurement prediction matrix
     encoder = np.concatenate((encoder_0 * ones, encoder_1 * ones), axis = 1)
-    difference = np.mean(np.subtract(encoder, predicted[:][3:]), axis = 1) 
+    difference = np.mean(np.subtract(encoder, predicted[:,[2,3]]), axis = 1) 
     weight_encoder = np.multiply(np.multiply(weight, difference),
                                  noise_measurement)
          
@@ -398,21 +385,26 @@ while time.time() < stop_loop:
     # Get the position and velocities of the particles
     for particle in range(number_of_particles): 
         # from IEEE 802.15.4a and encoder input
-        state_matrix[particle] = get_state(IEEE[particle], encoder[particle])
+        state_matrix[particle] = get_state(IEEE[particle, 0],
+                                           IEEE[particle, 1],
+                                           encoder[particle, 0],
+                                           encoder[particle, 1])
 
     # The estimated position values are the main output
     # These values are used for the next iteration
     # Get the summation of the element-wise product of values and weights
-    estimated_position_x = np.sum(np.multiply(state_matrix[:][0], weight))
-    estimated_position_y = np.sum(np.multiply(state_matrix[:][1], weight))
-    estimated_velocity_x = np.sum(np.multiply(state_matrix[:][2], weight))
-    estimated_velocity_y = np.sum(np.multiply(state_matrix[:][3], weight))
+    estimated_position_x = np.sum(np.multiply(state_matrix[:, 0], weight))
+    estimated_position_y = np.sum(np.multiply(state_matrix[:, 1], weight))
+    estimated_velocity_x = np.sum(np.multiply(state_matrix[:, 2], weight))
+    estimated_velocity_y = np.sum(np.multiply(state_matrix[:, 3], weight))
     
+    print("\tEstimated x = " + str(estimated_position_x))
+    print("\tEstimated y = " + str(estimated_position_y))
+    #print("\tCheck = " + str(check))
     # Record estimated position for plot data
-    np.concatenate((estimated_plot_data, np.array([estimated_position_x,
-                                                   estimated_position_y])),
+    np.concatenate((estimated_plot_data, np.array([[estimated_position_x,
+                                                    estimated_position_y]])),
                     axis = 0)
-                    
     
 #------------------------------------------------------------------------------
 # Conduct resampling
@@ -470,14 +462,15 @@ while time.time() < stop_loop:
     # Update the state of the particle based on noise and previous state
     # The previous state was used for measurement prediction
     # The basis for this is page 47 of 978-1580536318/158053631X
-    state_update = np.matmul(state_factor, state_matrix[particle][0]) 
-    noise_update = np.matmul(noise_factor, noise_process[particle])
-    state_matrix[particle] = np.add(state_update, noise_update)
+    state_update = np.matmul(state_factor, state_matrix[particle, :]) 
+    noise_update = np.matmul(noise_factor, noise_process[particle, :])
+    state_matrix[particle] = np.add([state_update], [noise_update])
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #------------------------ -  Consolidate Results   ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
+
+'''
 #------------------------------------------------------------------------------
 # Delete initial zero row
 #------------------------------------------------------------------------------
@@ -486,33 +479,17 @@ np.delete(actual_plot_data, 0, axis = 0)
 np.delete(IEEE_plot_data, 0, axis = 0)
 np.delete(encoder_plot_data, 0, axis = 0)
 np.delete(estimated_plot_data, 0, axis = 0)
+'''
 
 #------------------------------------------------------------------------------
 # Convert numpy array to list
 #------------------------------------------------------------------------------
 
-actual_vertices = np.array.tolist(actual_plot_data)
-IEEE_vertices = np.array.tolist(IEEE_plot_data)
-encoder_vertices = np.array.tolist(encoder_plot_data)
-estimated_vertices = np.array.tolist(estimated_plot_data)
+actual_vertices = np.ndarray.tolist(actual_plot_data)
+IEEE_vertices = np.ndarray.tolist(IEEE_plot_data)
+encoder_vertices = np.ndarray.tolist(encoder_plot_data)
+estimated_vertices = np.ndarray.tolist(estimated_plot_data)
 
 #------------------------------------------------------------------------------
 # Plot the different position data
 #------------------------------------------------------------------------------
-
-figure, axes = plt.pyplot.subplot(columns = 1, rows = 3)
-axes[0, 0].plt.path(actual_vertices)
-axes[0, 0].plt.path(IEEE_vertices)
-plt.title('IEEE 802.15.4a Localization')
-
-plt.subplot(2, 1)
-axes[1, 0].plt.path(actual_vertices)
-axes[1, 0].plt.path(encoder_vertices)
-plt.title('Encoder Localization')
-
-plt.subplot(3, 1)
-axes[2, 0].plt.path(actual_vertices)
-axes[2, 0].plt.path(estimated_vertices)
-plt.title('Estimated Localization')
-
-plt.show()
