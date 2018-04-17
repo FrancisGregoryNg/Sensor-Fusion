@@ -1,4 +1,6 @@
 import random
+import matplotlib.path as Path
+import matplotlib.pyplot as plot
 
 class Vehicle:
     def __init__(self, wheelRadius, mass, friction, dt, initialX = 0, initialY = 0, initialVx = 0, initialVy = 0, initialOmegaX = 0, initialOmegaY = 0):
@@ -34,7 +36,7 @@ class Vehicle:
         else:                           #else (if the difference in desired vs actual is small) just set the velocity directly
             self.vx = newVx
             
-        if (abs(newVx - self.vx) > dv):
+        if (abs(newVy - self.vy) > dv):
             self.vy = self.vy - dv
         else:
             self.vy = newVy
@@ -59,19 +61,3 @@ class Vehicle:
         
     def readActual(self):
         return (self.x, self.y)
-
-#THE SEGMENT BELOW IS FOR TESTING PURPOSES ONLY==================================================
-roboman = Vehicle(0.05, 1, 0.5, 0.01, 0, 0, 1, 10, 0, 0);
-#0.05m wheel diameter
-#1kg mass
-#0.5 friction coefficient
-#0.01s timestep
-#1 m/s initial velocity x
-#10 m/s initial velocity y
-
-for x in range(0, 100):
-    print(x, end = " ")
-    print(*roboman.readActual())
-    #print(*roboman.readIEEE())
-    
-    roboman.updateModel();
