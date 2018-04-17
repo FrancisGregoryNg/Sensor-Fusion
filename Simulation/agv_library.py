@@ -45,14 +45,14 @@ class Vehicle:
         else:
             self.vy = newVy
         
-        self.x += self.vx * self.dt
-        self.y += self.vy * self.dt
+        self.x += (self.vx  + random.gauss(0.01, 0.005)) * self.dt
+        self.y += (self.vy  + random.gauss(0.01, 0.005)) * self.dt
         
         self.encoderX += self.omegaX * self.dt
         self.encoderY += self.omegaY * self.dt
         
-        self.ieee[0] = self.x + random.gauss(0, 1)
-        self.ieee[1] = self.y + random.gauss(0, 1)
+        self.ieee[0] = self.x + random.gauss(0, 0.05)
+        self.ieee[1] = self.y + random.gauss(0, 0.05)
             
     def readEncoder(self):              #encoder counts every 0.5 degrees, so convert from rad to deg, then multiply by 2
         countsX = 2 * self.encoderX * 180 / 3.14159265359
