@@ -52,6 +52,8 @@ class Vehicle:
         countsX = 2 * self.encoderX * 180 / 3.14159265359
         countsY = 2 * self.encoderY * 180 / 3.14159265359
         
+        return (countsX, countsY)
+        
     def readIEEE(self):
         return self.ieee
         
