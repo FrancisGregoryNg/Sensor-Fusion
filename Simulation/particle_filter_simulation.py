@@ -183,7 +183,7 @@ max_speed = 1000
 diameter = 50
 
 # time in seconds (s) wherein velocity is measured
-T = 1
+T = 0.10
 
 # covariance of process noise and measurement noise (guess: between 0 and 10)
 covariance_process = 0.25 * np.random.random()
@@ -273,14 +273,14 @@ noise_factor = np.array([[0.5 * T **2, 0.5 * T **2],
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 print("Start of main loop\n")
 # Repeat the loop for a given amount of time
-duration = 30
+duration = 10
 iteration = 0
 start = time.time()
 stop_loop = time.time() + duration
 while time.time() < stop_loop:
     iteration += 1
     print("Iteration # " + str(iteration), end = "")
-    print("; Time = " + str(time.time() - start))        
+    print("; Time = " + "{:.2f}".format(time.time() - start) + "s")        
 #------------------------------------------------------------------------------
 # Measurement prediction
 #------------------------------------------------------------------------------
@@ -309,9 +309,8 @@ while time.time() < stop_loop:
     actual_position_x, actual_position_y = roboman.readActual()
     
     # Actual position for plot data
-    np.concatenate((actual_plot_data, np.array([[actual_position_x,
-                                                 actual_position_y]])),
-                    axis = 0)
+    new_actual = np.array([[actual_position_x, actual_position_y]])
+    actual_plot_data = np.append(actual_plot_data, new_actual, axis = 0)
     
     # Get position if only purely IEEE 802.15.4a data is used for localization
     IEEE_position_x, IEEE_position_y = IEEE_0, IEEE_1
@@ -320,9 +319,8 @@ while time.time() < stop_loop:
     IEEE_0, IEEE_1 = get_IEEE(IEEE_0, IEEE_1)
     
     # Record IEEE position for plot data
-    np.concatenate((IEEE_plot_data, np.array([[IEEE_position_x,
-                                               IEEE_position_y]])),
-                    axis = 0)
+    new_IEEE = np.array([[IEEE_position_x, IEEE_position_y]])
+    IEEE_plot_data = np.append(IEEE_plot_data, new_IEEE, axis = 0)
     
     # Get position if only purely encoder data is used for localization
     (encoder_position_x,
@@ -331,9 +329,8 @@ while time.time() < stop_loop:
                                                  encoder_position_y)
         
     # Record encoder position for plot data
-    np.concatenate((encoder_plot_data, np.array([[encoder_position_x,
-                                                 encoder_position_y]])),
-                    axis = 0)
+    new_encoder = np.array([[encoder_position_x, encoder_position_y]])
+    encoder_plot_data = np.append(encoder_plot_data, new_encoder, axis = 0)
     
 #------------------------------------------------------------------------------
 # Modify the weights
@@ -352,7 +349,8 @@ while time.time() < stop_loop:
     # Take the average of the errors from the two sensors
     # Use the first two columns from the measurement prediction matrix
     IEEE = np.concatenate((IEEE_0 * ones, IEEE_1 * ones), axis = 1)
-    difference = np.mean(np.subtract(IEEE, predicted[:, [0,1]]), axis = 1)                               
+    difference = np.mean(np.absolute(np.subtract(IEEE, predicted[:, [0,1]])), 
+                         axis = 1)                               
     weight_IEEE = np.multiply(np.multiply(weight, difference), 
                               noise_measurement)
         
@@ -364,7 +362,8 @@ while time.time() < stop_loop:
     # Take the average of the errors from the two sensors
     # Use the last two columns from the measurement prediction matrix
     encoder = np.concatenate((encoder_0 * ones, encoder_1 * ones), axis = 1)
-    difference = np.mean(np.subtract(encoder, predicted[:,[2,3]]), axis = 1) 
+    difference = np.mean(np.absolute(np.subtract(encoder, predicted[:,[2,3]])), 
+                         axis = 1) 
     weight_encoder = np.multiply(np.multiply(weight, difference),
                                  noise_measurement)
          
@@ -377,7 +376,10 @@ while time.time() < stop_loop:
     # The normalized weights, however, can be averaged quite easily
     weight = np.mean(np.concatenate((weight_IEEE, weight_encoder), axis = 1),
                      axis = 1)
-        
+    
+    # Normalize weights
+    weight_total = np.sum(weight) * ones
+    weight = np.divide(weight, weight_total)
 #------------------------------------------------------------------------------
 # Output sensor-fused value
 #------------------------------------------------------------------------------
@@ -398,13 +400,13 @@ while time.time() < stop_loop:
     estimated_velocity_x = np.sum(np.multiply(state_matrix[:, 2], weight))
     estimated_velocity_y = np.sum(np.multiply(state_matrix[:, 3], weight))
     
-    print("\tEstimated x = " + str(estimated_position_x))
-    print("\tEstimated y = " + str(estimated_position_y))
+    print("\t\t\t\tEstimated x = " + str(estimated_position_x))
+    print("\t\t\t\tEstimated y = " + str(estimated_position_y))
     #print("\tCheck = " + str(check))
     # Record estimated position for plot data
-    np.concatenate((estimated_plot_data, np.array([[estimated_position_x,
-                                                    estimated_position_y]])),
-                    axis = 0)
+    new_estimate = np.array([[estimated_position_x, estimated_position_y]])
+    estimated_plot_data = np.append(estimated_plot_data, new_estimate, 
+                                    axis = 0)
     
 #------------------------------------------------------------------------------
 # Conduct resampling
@@ -419,7 +421,8 @@ while time.time() < stop_loop:
         # “Introduction to Particle Filtering” Discussion - Notes
         
         # Get the integer part and the residual part of the scaled weights
-        (number_of_copies, residual) = np.divmod(number_of_particles * weight)
+        (number_of_copies, residual) = np.divmod(number_of_particles * weight, 
+                                                 1)
         
         # Get the needed values for the resampling method
         residual = residual / np.sum(residual)
@@ -437,14 +440,14 @@ while time.time() < stop_loop:
         # It may be possible that doing each strategy as a block can be better
         selected = 0
         current_division = 0
-        for particle in range(number_of_particles): 
-            for copy in range(number_of_copies[particle]):
+        for particle in range(number_of_particles):
+            for copy in range(int(number_of_copies[particle])):
                 resample[selected] = particle
                 selected += 1
             if positions[current_division] <= cumulative_sum[particle]:
                 resample[selected] = particle
                 selected += 1
-                current_division +=1 
+                current_division +=1
                 
         # Update the state matrix
         # Take the elements according to the chosen resampling indices
@@ -470,25 +473,14 @@ while time.time() < stop_loop:
 #------------------------ -  Consolidate Results   ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-'''
-#------------------------------------------------------------------------------
-# Delete initial zero row
-#------------------------------------------------------------------------------
-    
-np.delete(actual_plot_data, 0, axis = 0)
-np.delete(IEEE_plot_data, 0, axis = 0)
-np.delete(encoder_plot_data, 0, axis = 0)
-np.delete(estimated_plot_data, 0, axis = 0)
-'''
-
 #------------------------------------------------------------------------------
 # Convert numpy array to list
 #------------------------------------------------------------------------------
 
-actual_vertices = np.ndarray.tolist(actual_plot_data)
-IEEE_vertices = np.ndarray.tolist(IEEE_plot_data)
-encoder_vertices = np.ndarray.tolist(encoder_plot_data)
-estimated_vertices = np.ndarray.tolist(estimated_plot_data)
+actual_vertices = np.ndarray.tolist(actual_plot_data[:])
+IEEE_vertices = np.ndarray.tolist(IEEE_plot_data[:])
+encoder_vertices = np.ndarray.tolist(encoder_plot_data[:])
+estimated_vertices = np.ndarray.tolist(estimated_plot_data[:])
 
 #------------------------------------------------------------------------------
 # Plot the different position data
