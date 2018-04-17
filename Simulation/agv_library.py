@@ -30,12 +30,18 @@ class Vehicle:
         dv = acceleration * self.dt
         
         if (abs(newVx - self.vx) > dv): #if the absolute difference between desired and actual velocity is greater than dv, increment velocity by dv
-            self.vx = self.vx - dv
+            if newVx > self.vx:
+                self.vx = self.vx + dv
+            else:
+                self.vx = self.vx - dv
         else:                           #else (if the difference in desired vs actual is small) just set the velocity directly
             self.vx = newVx
             
-        if (abs(newVx - self.vx) > dv):
-            self.vy = self.vy - dv
+        if (abs(newVy - self.vy) > dv):
+            if newVy > self.vy:
+                self.vy = self.vy + dv
+            else:
+                self.vy = self.vy - dv
         else:
             self.vy = newVy
         
@@ -55,23 +61,7 @@ class Vehicle:
         return (countsX, countsY)
         
     def readIEEE(self):
-        return self.ieee
+        return (self.ieee[0], self.ieee[1])
         
     def readActual(self):
         return (self.x, self.y)
-
-#THE SEGMENT BELOW IS FOR TESTING PURPOSES ONLY==================================================
-roboman = Vehicle(0.05, 1, 0.5, 0.01, 0, 0, 1, 10, 0, 0);
-#0.05m wheel diameter
-#1kg mass
-#0.5 friction coefficient
-#0.01s timestep
-#1 m/s initial velocity x
-#10 m/s initial velocity y
-
-for x in range(0, 100):
-    print(x, end = " ")
-    print(*roboman.readActual())
-    #print(*roboman.readIEEE())
-    
-    roboman.updateModel();
