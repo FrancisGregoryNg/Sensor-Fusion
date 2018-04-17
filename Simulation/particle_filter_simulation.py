@@ -1,8 +1,6 @@
 import numpy as np
 import time
 import matplotlib as plt
-from matplotlib.path import Path
-import matplotlib.patches as patches
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------   Function Definitions  ----------------------------
@@ -490,32 +488,31 @@ np.delete(encoder_plot_data, 0, axis = 0)
 np.delete(estimated_plot_data, 0, axis = 0)
 
 #------------------------------------------------------------------------------
+# Convert numpy array to list
+#------------------------------------------------------------------------------
+
+actual_vertices = np.array.tolist(actual_plot_data)
+IEEE_vertices = np.array.tolist(IEEE_plot_data)
+encoder_vertices = np.array.tolist(encoder_plot_data)
+estimated_vertices = np.array.tolist(estimated_plot_data)
+
+#------------------------------------------------------------------------------
 # Plot the different position data
 #------------------------------------------------------------------------------
 
-import matplotlib.pyplot as plt
+figure, axes = plt.pyplot.subplot(columns = 1, rows = 3)
+axes[0, 0].plt.path(actual_vertices)
+axes[0, 0].plt.path(IEEE_vertices)
+plt.title('IEEE 802.15.4a Localization')
 
-verts = [
-    (0., 0.), # left, bottom
-    (0., 1.), # left, top
-    (1., 1.), # right, top
-    (1., 0.), # right, bottom
-    (0., 0.), # ignored
-    ]
+plt.subplot(2, 1)
+axes[1, 0].plt.path(actual_vertices)
+axes[1, 0].plt.path(encoder_vertices)
+plt.title('Encoder Localization')
 
-codes = [Path.MOVETO,
-         Path.LINETO,
-         Path.LINETO,
-         Path.LINETO,
-         Path.CLOSEPOLY,
-         ]
+plt.subplot(3, 1)
+axes[2, 0].plt.path(actual_vertices)
+axes[2, 0].plt.path(estimated_vertices)
+plt.title('Estimated Localization')
 
-path = Path(verts, codes)
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-patch = patches.PathPatch(path, facecolor='orange', lw=2)
-ax.add_patch(patch)
-ax.set_xlim(-2,2)
-ax.set_ylim(-2,2)
 plt.show()
