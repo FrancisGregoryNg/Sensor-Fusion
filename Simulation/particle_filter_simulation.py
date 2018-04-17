@@ -1,11 +1,44 @@
 import numpy as np
-import csv
-import pigpio
 import time
+import matplotlib as plt
+from matplotlib.path import Path
+import matplotlib.patches as patches
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------   Function Definitions  ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+def get_IEEE_plot_data(IEEE_0, IEEE_1):
+    # Get the position using the IEEE 802.15.4a values
+    
+    # Use the empirically-determined factor for the inverse-square law
+    # signal_strength = factor * (1 / distance ** 2)
+    # Transmitter 0 is located at (0, 0) or (0, 0)
+    # Transmitter 1 is located at (max_x, 0) or (room_width, 0)
+    distance_0 = np.sqrt(factor_0 / IEEE_0)  
+    distance_1 = np.sqrt(factor_1 / IEEE_1)
+    
+    # According to the SSS theorem, the angles of the triangle can be computed
+    # Use the law of cosines: c ** 2 = a ** 2 + b ** 2 - 2 * a * b * cos(C)
+    # Let angle_0 and angle_1 be the angles with respect to the horizontal
+    # These are oriented so as to range from 0 to 90 degrees
+    angle_0 = np.arccos((room_length ** 2 + distance_0 ** 2 - distance_1 ** 2)
+                        / (2 * room_length * distance_0))
+    angle_1 = np.arccos((room_length ** 2 + distance_1 ** 2 - distance_0 ** 2)
+                        / (2 * room_length * distance_1))
+    
+    # Theoretically, only angles from one transmitter are needed
+    # However, the calculation is not so heavy so the average may be taken
+    position_x = ((distance_0 * np.cos(angle_0))
+                  + (room_width - distance_1 * np.cos(angle_1))) / 2          
+    position_y = ((distance_0 * np.sin(angle_0))
+                  + (distance_1 * np.sin(angle_1))) / 2
+    return position_x, position_y
+
+def get_encoder_plot_data(encoder_0, encoder_1, prior_x, prior_y):
+    position_x = encoder_0 * np.pi * diameter * 0.5 / 360
+    position_y = encoder_1 * np.pi * diameter * 0.5 / 360
+    return position_x, position_y
 
 def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
     # Get the position using the IEEE 802.15.4a values
@@ -33,7 +66,7 @@ def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
     position_y = ((distance_0 * np.sin(angle_0))
                   + (distance_1 * np.sin(angle_1))) / 2
 
-    # Get the velocity using the two encoder values
+    # Get the position using the two encoder values
 
     # For two pairs of omni-wheels, with one encoder for each pair
     # Each pair is coupled so they move together
@@ -45,30 +78,11 @@ def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
 # Used for gettting the sensor measurements
 def get_measurements():
     # Get IEEE at the start
-    
-    # Request signal strength from the first transmitter
-    pi.wave_send_once(get_strength_0)
-    
-    # Wait until all data has been sent
-    while pi.wave_tx_busy():
-          pass
-    
-    # Read signal strength data from the first transmitter
-    (temp_data_0, IEEE_0_start) = pi.bb_serial_read(IEEE_0_RX)
-    
-    # Request signal strength from the second transmitter
-    pi.wave_send_once(get_strength_1)
-    
-    # Wait until all data has been sent
-    while pi.wave_tx_busy():
-          pass
-    
-    # Read signal strength data from the second transmitter
-    (temp_data_1, IEEE_1_start) = pi.bb_serial_read(IEEE_1_RX)
-    
-    # Convert bytearray to integer 
-    IEEE_0_start = int.from_bytes(IEEE_0_start)  
-    IEEE_1_start = int.from_bytes(IEEE_1_start)  
+    '''
+    Get IEEE data
+    '''
+    IEEE_0_start = 0
+    IEEE_1_start = 0
     
     # Set time for counter encoder rotations to T seconds (1 second)
     timeout = time.time() + T
@@ -78,10 +92,11 @@ def get_measurements():
     encoder_1 = 0
     
     # Take the initial measurements by getting the index in the sequence list
-    # For encoder_0: (board 29, BCM 5) and (board 31, BCM 6)
-    # For encoder_1: (board 32, BCM 12) and (board 33, BCM 13)
-    current_0 = sequence.index((pi.read(5), pi.read(6))) 
-    current_1 = sequence.index((pi.read(12), pi.read(13))) 
+    '''
+    Get encoder data
+    '''
+    current_0 = sequence.index(0, 0) 
+    current_1 = sequence.index(0, 0) 
     
     # Loop until timeout occurs
     # Measurement is assumed to be quick enough to record increments of 1 or -1 
@@ -92,8 +107,11 @@ def get_measurements():
         previous_1 = current_1
         
         # Update the current measurements
-        current_0 = sequence.index((pi.read(5), pi.read(6))) 
-        current_1 = sequence.index((pi.read(12), pi.read(13))) 
+        '''
+        Get encoder data
+        '''
+        current_0 = sequence.index(0, 0) 
+        current_1 = sequence.index(0, 0) 
 
         # Update the current position
         (encoder_0_A, encoder_0_B) = sequence(current_0)
@@ -115,29 +133,11 @@ def get_measurements():
     
     # Get IEEE again at the end
     
-    # Request signal strength from the first transmitter
-    pi.wave_send_once(get_strength_0)
-    
-    # Wait until all data has been sent
-    while pi.wave_tx_busy():
-          pass
-    
-    # Read signal strength data from the first transmitter
-    (temp_data_0, IEEE_0_end) = pi.bb_serial_read(IEEE_0_RX)
-    
-    # Request signal strength from the second transmitter
-    pi.wave_send_once(get_strength_1)
-    
-    # Wait until all data has been sent
-    while pi.wave_tx_busy():
-          pass
-    
-    # Read signal strength data from the second transmitter
-    (temp_data_1, IEEE_1_end) = pi.bb_serial_read(IEEE_1_RX)
-    
-    # Convert bytearray to integer 
-    IEEE_0_end = int.from_bytes(IEEE_0_end)  
-    IEEE_1_end = int.from_bytes(IEEE_1_end)  
+    '''
+    Get IEEE data
+    '''  
+    IEEE_0_end = 0
+    IEEE_1_end = 0
     
     IEEE_0 = (IEEE_0_start + IEEE_0_end) / 2
     IEEE_1 = (IEEE_1_start + IEEE_1_end) / 2
@@ -171,89 +171,19 @@ def predict_measurements(position_x, position_y, velocity_x, velocity_y):
 #-------------------------      Initialization     ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#------------------------------------------------------------------------------
-# Configure the pin connections
-#------------------------------------------------------------------------------
-
-# Use pigpio daemon to control general-purpose input/outputs more freely
-pi = pigpio.pi()
-
-# Set the pins for the IEEE 802.15.4a
-# For TX of IEEE_0: (board 16, BCM 23)
-# For TX of IEEE_1: (board 18, BCM 24)
-IEEE_0_TX = 1
-IEEE_1_TX = 1
-
-# For RX of IEEE_0: (board 16, BCM 23)
-# For RX of IEEE_1: (board 18, BCM 24)
-IEEE_0_RX = 16
-IEEE_1_RX = 18
-baud = 9600
-
-pi.set_mode(IEEE_0_TX, pigpio.OUTPUT)
-pi.set_mode(IEEE_1_TX, pigpio.OUTPUT)
-
-# CLose both RX pins if open
-# Exceptions is turned off to prevent error in closing unopened GPIO
-pigpio.exceptions = False
-pi.bb_serial_read_close(IEEE_0_RX)
-pi.bb_serial_read_close(IEEE_1_RX)
-pigpio.exceptions = True
-
-# Set up the commands for getting the signal strength from the transmitters
-pi.wave_clear()
-command = 'DB'
-pi.wave_add_serial(IEEE_0_TX, baud, command)
-get_strength_0 = pi.wave_create()
-pi.wave_add_serial(IEEE_1_TX, baud, command)
-get_strength_1 = pi.wave_create()
-
-# Open pins for reading of serial data
-pi.bb_serial_read_open(IEEE_0_RX, baud)
-pi.bb_serial_read_open(IEEE_1_RX, baud)
-
-# Set sensor pin inputs for the encoders
-
-# Set pin A of encoder_0 (board 29, BCM 5) as input
-pi.set_mode( 24, pigpio.INPUT)
-# Set pin B of encoder_0 (board 31, BCM 6) as input
-pi.set_mode( 25, pigpio.INPUT)
-
-# Set pin A of encoder_1 (board 32, BCM 12) as input
-pi.set_mode( 8, pigpio.INPUT)
-# Set pin B of encoder_1 (board 33, BCM 13) as input
-pi.set_mode( 7, pigpio.INPUT)
+starting_x = 0
+starting_y = 0
 
 # Define the sequence of encoder values (cycles every 2 degrees of rotation)
 sequence = ((0,0), (0,1), (1,1), (1,0))
 
-#------------------------------------------------------------------------------
-# Set up database
-#------------------------------------------------------------------------------
+actual_plot_data = np.zeros((1, 2), dtype = float)
+IEEE_plot_data = np.zeros((1, 2), dtype = float)
+encoder_plot_data = np.zeros((1, 2), dtype = float)
+estimated_plot_data = np.zeros((1, 2), dtype = float)
 
-# Initialize the signal mapping matrix and the corresponding location matrix
-signal = np.zeros((1,2), dtype = float)
-location = np.zeros((1,2), dtype = float)
-    
-# Copy data from the .csv files onto the corresponding matrices
-with open('IEEE_signal_database.csv') as database:
-    read_database = csv.DictReader(database)
-    for row in read_database:
-        signal = np.append(signal, 
-                               [[float(row['IEEE_0']), float(row['IEEE_1'])]], 
-                               axis = 0)
-       
-with open('IEEE_matching_locations.csv') as matching_locations:
-    read_locations = csv.DictReader(matching_locations)
-    for row in read_locations:
-        location = np.append(location, 
-                              [[float(row['x']), float(row['y'])]], 
-                              axis = 0)
-        
-# Delete the initial zero-value rows of the matrices
-signal = np.delete(signal, (0), axis = 0)
-location = np.delete(location, (0), axis = 0)
-
+encoder_position_x = starting_x
+encoder_position_y = starting_y
 #------------------------------------------------------------------------------
 # Set values
 #------------------------------------------------------------------------------
@@ -273,7 +203,7 @@ room_length = 2000
 max_speed = 1000   
 
 # the diameter of each omni-wheel is in millimeters (mm)
-diameter = 10
+diameter = 50
 
 # time in seconds (s) wherein velocity is measured
 T = 1
@@ -282,35 +212,9 @@ T = 1
 covariance_process = 10 * np.random.random()
 covariance_measurement = 10 * np.random.random()
 
-#------------------------------------------------------------------------------
-# Calculate proportionality factors for signal strength
-#------------------------------------------------------------------------------
-# Calculate the factor for the inverse-square law
-# signal_strength = factor * (1 / distance ** 2)
-# Transmitter 0 is located at (min_x, max_y) or (0, room_length)
-# Transmitter 1 is located at (max_x, max_y) or (room_width, room_length)
-
-# Create an array of ones for use in computations
-number_of_samples = signal.shape[0]
-ones = np.ones((number_of_samples, 1), dtype = float)
-
-# Calculate the distances from the transmitters
-distance_0 = np.sqrt(np.add(np.power(np.subtract(location[:][0], 
-                                                 (room_width * ones)), 2), 
-                            np.power(np.subtract(location[:][1], 
-                                                 (room_length * ones)), 2)))
-distance_1 = np.sqrt(np.add(np.power(np.subtract(location[:][0], 
-                                                 (room_width * ones)), 2), 
-                            np.power(np.subtract(location[:][1], 
-                                                 (room_length * ones)), 2)))
-
-# Calculate the individual proportionality factors for each data point
-factor_0_individual = np.multiply(signal[:][0], np.power(distance_0, 2))
-factor_1_individual = np.multiply(signal[:][1], np.power(distance_1, 2))
-
-# Set the central tendency as the general proportionality factor 
-factor_0 = np.median(factor_0_individual)
-factor_1 = np.median(factor_1_individual)
+# proportionality factors for signal strength
+factor_0 = 0
+factor_1 = 0
 
 #------------------------------------------------------------------------------
 # Draw samples from a uniform distribution (initial distribution)
@@ -368,7 +272,7 @@ for particle in range(number_of_particles):
 
 # Get IEEE 802.15.4a and encoder values
 IEEE_0, IEEE_1, encoder_0, encoder_1 = get_measurements()
-
+    
 # Prepare the matrix for storing predicted measurements
 # IEEE_0, IEEE_1, encoder_0, encoder_1
 predicted = np.zeros((number_of_particles, 4), dtype = float)
@@ -391,8 +295,10 @@ noise_factor = np.array([[0.5 * T **2, 0.5 * T **2],
 #-------------------------  Main Loop (Iterations) ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Repeat the loop indefinitely
-while True:
+# Repeat the loop for a given amount of time
+duration = 60
+stop_loop = time.time() + duration
+while time.time() < stop_loop:
 
 #------------------------------------------------------------------------------
 # Measurement prediction
@@ -418,6 +324,32 @@ while True:
     # Get IEEE 802.15.4a and encoder values
     IEEE_0, IEEE_1, encoder_0, encoder_1 = get_measurements()
     
+    # Get actual position from simulation
+    actual_position_x, actual_position_y = 0 , 0
+    
+    # Actual position for plot data
+    np.concatenate((actual_plot_data, np.array([actual_position_x,
+                                                actual_position_y])),
+                    axis = 0)
+    
+    # Get position if only purely IEEE 802.15.4a data is used for localization
+    IEEE_position_x, IEEE_position_y = get_IEEE_plot_data(IEEE_0, IEEE_1)
+    
+    # Record IEEE position for plot data
+    np.concatenate((IEEE_plot_data, np.array([IEEE_position_x,
+                                              IEEE_position_y])),
+                    axis = 0)
+    
+    # Get position if only purely encoder data is used for localization
+    (encoder_position_x,
+     encoder_position_y) = get_encoder_plot_data(encoder_0, encoder_1, 
+                                                 encoder_position_x,
+                                                 encoder_position_y)
+        
+    # Record encoder position for plot data
+    np.concatenate((encoder_plot_data, np.array([encoder_position_x,
+                                                 encoder_position_y])),
+                    axis = 0)
 #------------------------------------------------------------------------------
 # Modify the weights
 #------------------------------------------------------------------------------
@@ -478,6 +410,12 @@ while True:
     estimated_velocity_x = np.sum(np.multiply(state_matrix[:][2], weight))
     estimated_velocity_y = np.sum(np.multiply(state_matrix[:][3], weight))
     
+    # Record estimated position for plot data
+    np.concatenate((estimated_plot_data, np.array([estimated_position_x,
+                                                   estimated_position_y])),
+                    axis = 0)
+                    
+    
 #------------------------------------------------------------------------------
 # Conduct resampling
 #------------------------------------------------------------------------------
@@ -537,14 +475,47 @@ while True:
     state_update = np.matmul(state_factor, state_matrix[particle][0]) 
     noise_update = np.matmul(noise_factor, noise_process[particle])
     state_matrix[particle] = np.add(state_update, noise_update)
-        
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#-------------------------    Terminate Program    ----------------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Close pigpio
-pi.wave_delete(0)
-pi.wave_delete(1)
-pi.bb_serial_read_close(IEEE_0_RX)
-pi.bb_serial_read_close(IEEE_1_RX)
-pi.stop()
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#------------------------ -  Consolidate Results   ----------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+#------------------------------------------------------------------------------
+# Delete initial zero row
+#------------------------------------------------------------------------------
+    
+np.delete(actual_plot_data, 0, axis = 0)
+np.delete(IEEE_plot_data, 0, axis = 0)
+np.delete(encoder_plot_data, 0, axis = 0)
+np.delete(estimated_plot_data, 0, axis = 0)
+
+#------------------------------------------------------------------------------
+# Plot the different position data
+#------------------------------------------------------------------------------
+
+import matplotlib.pyplot as plt
+
+verts = [
+    (0., 0.), # left, bottom
+    (0., 1.), # left, top
+    (1., 1.), # right, top
+    (1., 0.), # right, bottom
+    (0., 0.), # ignored
+    ]
+
+codes = [Path.MOVETO,
+         Path.LINETO,
+         Path.LINETO,
+         Path.LINETO,
+         Path.CLOSEPOLY,
+         ]
+
+path = Path(verts, codes)
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+patch = patches.PathPatch(path, facecolor='orange', lw=2)
+ax.add_patch(patch)
+ax.set_xlim(-2,2)
+ax.set_ylim(-2,2)
+plt.show()
