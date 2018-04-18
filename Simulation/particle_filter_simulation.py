@@ -153,8 +153,10 @@ def predict_measurements(position_x, position_y, velocity_x, velocity_y):
 roboman = agv.Vehicle(0.024, 2, 0.8, 0.001)
 roboman.setMotor(30, 0)
 
-starting_x = 0
-starting_y = 0
+starting_position_x = 0
+starting_position_y = 0
+starting_velocity_x = 0
+starting_velocity_y = 0
 
 sim_time = 0
 
@@ -163,8 +165,13 @@ IEEE_plot_data = np.zeros((1, 2), dtype = float)
 encoder_plot_data = np.zeros((1, 2), dtype = float)
 estimated_plot_data = np.zeros((1, 2), dtype = float)
 
-encoder_position_x = starting_x
-encoder_position_y = starting_y
+encoder_position_x = starting_position_x
+encoder_position_y = starting_position_y
+
+previous_position_x = starting_position_x
+previous_position_y = starting_position_y
+previous_velocity_x = starting_velocity_x
+previous_velocity_y = starting_velocity_y
 #------------------------------------------------------------------------------
 # Set values
 #------------------------------------------------------------------------------
@@ -174,14 +181,14 @@ number_of_particles = 1000
 
 # the room dimensions (width, length) correspond to (x, y)
 # the origin starts at a selected corner of the room
-# the measurement unit is in millimeters (mm)
-room_width = 2000
-room_length = 2000
+# the measurement unit is in millimeters (m)
+room_width = 5
+room_length = 5
 
 # the maximum speed limit of the AGV is estimated (the lower the better)
 # the measurement unit is in millimeters per second (mm/s)
 # figure out how to incorporate this in noise calculations
-max_speed = 1000   
+max_speed = 5
 
 # the diameter of each omni-wheel is in meters (m)
 diameter = 0.024 * 2
@@ -263,14 +270,14 @@ noise_process = np.zeros((number_of_particles, 4), dtype = float)
 noise_measurement = np.zeros((number_of_particles, 1), dtype = float)
 
 # Prepare the factors for updating the state matrix
-state_factor = np.array([[1, 1, T, T],
-                         [1, 1, T, T],
-                         [0, 0, 1, 1],
-                         [0, 0, 1, 1]])
-noise_factor = np.array([[0.5 * T **2, 0.5 * T **2],
-                         [0.5 * T **2, 0.5 * T **2],
-                         [T, T],
-                         [T, T]])
+state_factor = np.array([[1, 0, T, 0],
+                         [0, 1, 0, T],
+                         [0, 0, 1, 0],
+                         [0, 0, 0, 1]])
+noise_factor = np.array([[0.5 * T **2, 0],
+                         [0, 0.5 * T **2],
+                         [T, 0],
+                         [0, T]])
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------  Main Loop (Iterations) ----------------------------
@@ -410,6 +417,12 @@ while sim_time < 20:
                                            IEEE[particle, 1],
                                            encoder[particle, 0],
                                            encoder[particle, 1])
+        state_matrix[particle, 0] = ((state_matrix[particle, 0] +
+                                      5 * (previous_position_x +
+                                      previous_velocity_x * T)) / 6)
+        state_matrix[particle, 1] = ((state_matrix[particle, 1] +
+                                      5 * (previous_position_y +
+                                      previous_velocity_y * T)) / 6)
 
     # The estimated position values are the main output
     # These values are used for the next iteration
@@ -424,6 +437,11 @@ while sim_time < 20:
     estimated_position_y = np.sum(np.multiply(temp_position_y, weight))
     estimated_velocity_x = np.sum(np.multiply(temp_velocity_x, weight))
     estimated_velocity_y = np.sum(np.multiply(temp_velocity_y, weight))
+    
+    previous_position_x = estimated_position_x
+    previous_position_y = estimated_position_y
+    previous_velocity_x = estimated_velocity_x
+    previous_velocity_y = estimated_velocity_y
 
     print("\t\t\t\tEstimated x = " + str(estimated_position_x))
     print("\t\t\t\tEstimated y = " + str(estimated_position_y))
@@ -493,9 +511,10 @@ while sim_time < 20:
     # Update the state of the particle based on noise and previous state
     # The previous state was used for measurement prediction
     # The basis for this is page 47 of 978-1580536318/158053631X
-    state_update = np.matmul(state_factor, state_matrix[particle, :]) 
-    noise_update = np.matmul(noise_factor, noise_process[particle, :])
-    state_matrix[particle] = np.add([state_update], [noise_update])
+    for particle in range(number_of_particles):
+        state_update = np.matmul(state_factor, state_matrix[particle, :]) 
+        noise_update = np.matmul(noise_factor, noise_process[particle, :])
+        state_matrix[particle] = np.add([state_update], [noise_update])
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #------------------------ -  Consolidate Results   ----------------------------
