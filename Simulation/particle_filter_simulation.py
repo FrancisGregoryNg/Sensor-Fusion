@@ -75,21 +75,24 @@ def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
 
 # Used for gettting the sensor measurements
 def get_measurements():
+    global sim_time
     roboman.updateModel()
+    sim_time += roboman.dt
     
     # Get IEEE at the start
     IEEE_0_start, IEEE_1_start = roboman.readIEEE()
     
     # Set time for counter encoder rotations to T seconds (1 second)
-    timeout = time.time() + T
+    timeout = sim_time + T
     
     # Initialize the encoder
     encoder_0_start, encoder_1_start = roboman.readEncoder()
     
     # Loop until timeout occurs
     # Measurement is assumed to be quick enough to record increments of 1 or -1 
-    while time.time() < timeout:
+    while sim_time < timeout:
         roboman.updateModel()
+        sim_time += roboman.dt
     
     encoder_0_end, encoder_1_end = roboman.readEncoder()
     
@@ -103,6 +106,7 @@ def get_measurements():
     encoder_1 = encoder_1_end - encoder_1_start
     
     roboman.updateModel()
+    sim_time += roboman.dt
     # Return values
     return IEEE_0, IEEE_1, encoder_0, encoder_1
 
@@ -151,6 +155,8 @@ roboman.setMotor(30, 0)
 
 starting_x = 0
 starting_y = 0
+
+sim_time = 0
 
 actual_plot_data = np.zeros((1, 2), dtype = float)
 IEEE_plot_data = np.zeros((1, 2), dtype = float)
@@ -271,25 +277,24 @@ noise_factor = np.array([[0.5 * T **2, 0.5 * T **2],
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 print("Start of main loop\n")
 # Repeat the loop for a given amount of time
-duration = 120
+
 iteration = 0
-start = time.time()
-stop_loop = time.time() + duration
-while time.time() < stop_loop:
+
+while sim_time < 20:
     iteration += 1
     print("Iteration # " + str(iteration), end = "")
-    print("; Time = " + "{:.2f}".format(time.time() - start) + "s")  
+    print("; sim_time = " + "{:.2f}".format(sim_time) + "s")  
     roboman.setMotor(30, 0)
     set_1 = 0
     set_2 = 0
     set_3 = 0
-    if float(time.time() - start) > 30 and set_1 == 0:
+    if sim_time > 5 and set_1 == 0:
         roboman.setMotor(0, 30)
         set_1 = 1
-    if float(time.time() - start) > 60 and set_2 == 0:
+    if sim_time > 10 and set_2 == 0:
         roboman.setMotor(-30, 0)
         set_2 = 1
-    if float(time.time() - start) > 90 and set_3 == 0:
+    if sim_time > 15 and set_3 == 0:
         roboman.setMotor(0, -30)
         set_3 = 1
 #------------------------------------------------------------------------------
