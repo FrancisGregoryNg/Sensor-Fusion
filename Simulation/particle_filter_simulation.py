@@ -64,6 +64,41 @@ def predict_measurements(position_x, position_y, velocity_x, velocity_y):
 
     return IEEE_0, IEEE_1, encoder_0, encoder_1
 
+def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
+    # Get the position using the IEEE 802.15.4a values
+    
+    # Use the empirically-determined factor for the inverse-square law
+    # signal_strength = factor * (1 / distance ** 2)
+    # Transmitter 0 is located at (0, 0) or (0, 0)
+    # Transmitter 1 is located at (max_x, 0) or (room_width, 0)
+    distance_0 = np.sqrt(factor_0 / IEEE_0)  
+    distance_1 = np.sqrt(factor_1 / IEEE_1)
+    
+    # According to the SSS theorem, the angles of the triangle can be computed
+    # Use the law of cosines: c ** 2 = a ** 2 + b ** 2 - 2 * a * b * cos(C)
+    # Let angle_0 and angle_1 be the angles with respect to the horizontal
+    # These are oriented so as to range from 0 to 90 degrees
+    angle_0 = np.arccos((room_length ** 2 + distance_0 ** 2 - distance_1 ** 2)
+                        / (2 * room_length * distance_0))
+    angle_1 = np.arccos((room_length ** 2 + distance_1 ** 2 - distance_0 ** 2)
+                        / (2 * room_length * distance_1))
+    
+    # Theoretically, only angles from one transmitter are needed
+    # However, the calculation is not so heavy so the average may be taken
+    position_x = ((distance_0 * np.cos(angle_0))
+                  + (room_width - distance_1 * np.cos(angle_1))) / 2          
+    position_y = ((distance_0 * np.sin(angle_0))
+                  + (distance_1 * np.sin(angle_1))) / 2
+
+    # Get the position using the two encoder values
+
+    # For two pairs of omni-wheels, with one encoder for each pair
+    # Each pair is coupled so they move together
+    # One pair moves in the x-direction, the other in the y-direction
+    velocity_x = (encoder_0 / T) * np.pi * diameter * 0.5 / 360
+    velocity_y = (encoder_1 / T) * np.pi * diameter * 0.5 / 360
+    return position_x, position_y, velocity_x, velocity_y
+
 # Get the signal equivalent of IEEE because simulation gives the position
 def get_IEEE(position_x, position_y):
     # Given the positions, the distances to the transmitters can be calculated
@@ -144,7 +179,7 @@ number_of_particles = 1000
 
 # Define the factor of contribution of previous state campared to new data
 # The time update of the state will not simply neglect the previous estimation
-lookback_scale = 1
+lookback_scale = 0.75
 
 #------------------------------------------------------------------------------
 # Values for encoder
@@ -189,10 +224,10 @@ state_matrix = np.zeros((number_of_particles, 4), dtype = float)
 # Initialize state data for each particle      
 # The initial distribution is set with assumed maximum errors
 # For position, an allowance for deviation is given
-position_buffer = 5
+position_buffer = 0.025
 
 # For velocity, an allowance for deviation is given
-velocity_buffer = 1
+velocity_buffer = 0.025
 
 # state_vector[0] = x-position
 minimum_position_x = max([starting_position_x - position_buffer, 0])
@@ -207,13 +242,15 @@ state_matrix[:, 1] = np.random.uniform(minimum_position_y, maximum_position_y,
                                        number_of_particles)
 
 # state_vector[2] = x-velocity
-state_matrix[:, 2] = np.random.uniform(starting_velocity_x - velocity_buffer,
-                                       starting_velocity_x + velocity_buffer,
+minimum_velocity_x = starting_velocity_x - velocity_buffer
+maximum_velocity_x = starting_velocity_x + velocity_buffer
+state_matrix[:, 2] = np.random.uniform(minimum_velocity_x, maximum_velocity_x,
                                        number_of_particles)
 
  # state_vector[3] = y-velocity
-state_matrix[:, 3] = np.random.uniform(starting_velocity_y - velocity_buffer,
-                                       starting_velocity_y + velocity_buffer,
+minimum_velocity_y = starting_velocity_y - velocity_buffer
+maximum_velocity_y = starting_velocity_y + velocity_buffer
+state_matrix[:, 3] = np.random.uniform(minimum_velocity_y, maximum_velocity_y,
                                        number_of_particles)
 
 #------------------------------------------------------------------------------
@@ -234,7 +271,7 @@ weight_resample = np.zeros((number_of_particles, 1), dtype = float)
 state_matrix_resample = np.zeros((number_of_particles, 4), dtype = float)
 
 # Define the factor of encoder contribution compared to the IEEE 802.15.4a
-weight_scale = 1
+weight_scale = 0.25
     
 #------------------------------------------------------------------------------
 # Prepare measurements for main loop
@@ -252,8 +289,8 @@ noise_process = np.zeros((number_of_particles, 4), dtype = float)
 noise_measurement = np.zeros((number_of_particles, 1), dtype = float)
 
 # Define the covariance of process noise and measurement noise
-covariance_process = 0.00025
-covariance_measurement = 0.00025
+covariance_process = 0.25
+covariance_measurement = 0.25
 standard_deviation_process = np.sqrt(covariance_measurement)
 standard_deviation_measurement = np.sqrt(covariance_measurement)
 
@@ -269,6 +306,26 @@ noise_factor = np.array([[0.5 * T **2, 0],
                          [0, 0.5 * T **2],
                          [T, 0],
                          [0, T]])
+    
+# Initialize the vector for direct sensor state
+direct_sensor = np.zeros(4, dtype = float)
+
+# Define the factor of contribution of direct sensor state campared to old data
+# There is a possibility that particles are degenerate even through resampling
+direct_scale = 0.25
+
+#------------------------------------------------------------------------------
+# Not particle filter
+#------------------------------------------------------------------------------
+
+# Prepare the array to store the position histor for plotting of other method
+n_estimated_plot_data = np.zeros((1, 2), dtype = float)
+
+# Initialize the state vector
+state_vector = np.zeros(4, dtype = float)
+
+# Set the lookback scale for the other method
+n_lookback_scale = lookback_scale
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------  Main Loop (Iterations) ----------------------------
@@ -277,11 +334,11 @@ print("Start of main loop\n")
 # Repeat the loop for a given amount of time
 
 sim_duration = 20
-iteration = 0
+count = 0
 
 while sim_time < sim_duration:
-    iteration += 1
-    print("Iteration # " + str(iteration), end = "")
+    count += 1
+    print("Iteration # " + str(count), end = "")
     print("; sim_time = " + "{:.2f}".format(sim_time) + "s")  
     robot.setMotor(30, 0)
     set_1 = 0
@@ -503,9 +560,85 @@ while sim_time < sim_duration:
                            lookback_scale * (previous_position_x +
                            previous_velocity_x * T)) / (lookback_scale+1))
     state_matrix[:, 1] = ((state_matrix[:, 1] +
-                           lookback_scale * (previous_position_x +
-                           previous_velocity_x * T)) / (lookback_scale+1))
+                           lookback_scale * (previous_position_y +
+                           previous_velocity_y * T)) / (lookback_scale+1))
+    
+    # Constantly reference state using direct sensor input
+    direct_sensor[:] = get_state(IEEE_0, IEEE_1, encoder_0, encoder_1)
+    
+    # state_vector[0] = x-position
+    minimum_position_x = max([direct_sensor[0] - position_buffer, 0])
+    maximum_position_x = min([direct_sensor[0] + position_buffer, 
+                              room_width])
+    state_matrix[:, 0] = ((state_matrix[:, 0] +
+                           direct_scale * 
+                           np.random.uniform(minimum_position_x, 
+                                             maximum_position_x,
+                                             number_of_particles)
+                           ) / (direct_scale + 1))
+                           
+    
+    # state_vector[1] = y-position
+    minimum_position_y = max([direct_sensor[1] - position_buffer, 0])
+    maximum_position_y = min([direct_sensor[1] + position_buffer,
+                              room_length])
+    state_matrix[:, 1] = ((state_matrix[:, 1] + 
+                           direct_scale * 
+                           np.random.uniform(minimum_position_y, 
+                                             maximum_position_y,
+                                             number_of_particles)
+                           ) / (direct_scale + 1))
+    
+    # state_vector[2] = x-velocity
+    minimum_velocity_x = direct_sensor[2] - velocity_buffer
+    maximum_velocity_x = direct_sensor[2] + velocity_buffer
+    state_matrix[:, 2] = ((state_matrix[:, 2] +
+                           direct_scale * 
+                           np.random.uniform(minimum_velocity_x, 
+                                             maximum_velocity_x,
+                                             number_of_particles)
+                           ) / (direct_scale + 1))
+    
+     # state_vector[3] = y-velocity
+    minimum_velocity_y = direct_sensor[3] - velocity_buffer
+    maximum_velocity_y = direct_sensor[3] + velocity_buffer
+    state_matrix[:, 3] = ((state_matrix[:, 3] + 
+                          direct_scale * 
+                          np.random.uniform(minimum_velocity_y, 
+                                            maximum_velocity_y,
+                                            number_of_particles) 
+                           ) / (direct_scale + 1))
+                               
+#------------------------------------------------------------------------------
+# Not particle filter
+#------------------------------------------------------------------------------
 
+    state_vector[:] = get_state(IEEE_0, IEEE_1, encoder_0, encoder_1)
+    state_vector[0] = ((state_vector[0] + 
+                        n_lookback_scale * (previous_position_x + 
+                        previous_velocity_x * T)) / (n_lookback_scale + 1))
+    state_vector[1] = ((state_vector[1] + 
+                        n_lookback_scale * (previous_position_y + 
+                        previous_velocity_y * T)) / (n_lookback_scale + 1))
+    
+    # The state vector will be the sensor-fused values
+    n_estimated_position_x = state_vector[0]
+    n_estimated_position_y = state_vector[1]
+    n_estimated_velocity_x = state_vector[2]
+    n_estimated_velocity_y = state_vector[3]
+    
+    # Consider estimated state as previous data for the next iteration
+    n_previous_position_x = n_estimated_position_x
+    n_previous_position_y = n_estimated_position_y
+    n_previous_velocity_x = n_estimated_velocity_x
+    n_previous_velocity_y = n_estimated_velocity_y
+    
+    # Record estimated position for plot data
+    n_new_estimate = np.array([[n_estimated_position_x, 
+                                n_estimated_position_y]])
+    n_estimated_plot_data = np.append(n_estimated_plot_data, n_new_estimate, 
+                                      axis = 0)
+    
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #------------------------ -  Consolidate Results   ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -522,24 +655,29 @@ encoder_vertices_x = np.ndarray.tolist(encoder_plot_data[:, 0])
 encoder_vertices_y = np.ndarray.tolist(encoder_plot_data[:, 1])
 estimated_vertices_x = np.ndarray.tolist(estimated_plot_data[:, 0])
 estimated_vertices_y = np.ndarray.tolist(estimated_plot_data[:, 1])
+n_estimated_vertices_x = np.ndarray.tolist(n_estimated_plot_data[:, 0])
+n_estimated_vertices_y = np.ndarray.tolist(n_estimated_plot_data[:, 1])
 
 #------------------------------------------------------------------------------
 # Plot the different position data
 #------------------------------------------------------------------------------
 
 # Subplot
-plt.subplot(2,2,1)
+plt.subplot(2,3,1)
 plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
 plt.title("Actual")
-plt.subplot(2,2,2)
+plt.subplot(2,3,2)
 plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
 plt.title("IEEE")
-plt.subplot(2,2,3)
+plt.subplot(2,3,3)
 plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
 plt.title("Encoder")
-plt.subplot(2,2,4)
+plt.subplot(2,3,4)
 plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
 plt.title("Estimate")
+plt.subplot(2,3,6)
+plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
+plt.title("Not particle filter")
 plt.tight_layout()
 plt.show()
 
@@ -556,10 +694,14 @@ plt.show()
 plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
 plt.title("Estimate")
 plt.show()
+plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
+plt.title("Not particle filter")
+plt.show()
 
 # Overlapping plots
 plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
 plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
 plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
 plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
+plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
 plt.show()
