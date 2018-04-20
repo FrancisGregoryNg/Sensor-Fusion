@@ -1,7 +1,10 @@
 import random
 
 class Vehicle:
-    def __init__(self, wheelRadius, mass, friction, dt, initialX = 0, initialY = 0, initialVx = 0, initialVy = 0, initialOmegaX = 0, initialOmegaY = 0):
+    def __init__(self, wheelRadius, mass, friction, dt, 
+                 initialX = 0, initialY = 0, 
+                 initialVx = 0, initialVy = 0, 
+                 initialOmegaX = 0, initialOmegaY = 0):
         self.x = initialX
         self.y = initialY
         self.vx = initialVx
@@ -25,16 +28,22 @@ class Vehicle:
         newVx = self.wheelRadius * self.omegaX
         newVy = self.wheelRadius * self.omegaY
         
-        tractionForce = self.friction * self.mass * 9.80665 #there is only 1 traction force since x and y are assumed to have the same friction coeff.
+        # there is only 1 traction force since x and y are assumed to have 
+        # the same friction coeff.
+        tractionForce = self.friction * self.mass * 9.80665 
         acceleration = tractionForce / self.mass
         dv = acceleration * self.dt
         
-        if (abs(newVx - self.vx) > dv): #if the absolute difference between desired and actual velocity is greater than dv, increment velocity by dv
+        # if the absolute difference between desired and actual velocity 
+        # is greater than dv, increment velocity by dv
+        if (abs(newVx - self.vx) > dv): 
             if newVx > self.vx:
                 self.vx = self.vx + dv
             else:
                 self.vx = self.vx - dv
-        else:                           #else (if the difference in desired vs actual is small) just set the velocity directly
+        # else (if the difference in desired vs actual is small) 
+        # just set the velocity directly
+        else:                           
             self.vx = newVx
             
         if (abs(newVy - self.vy) > dv):
@@ -53,8 +62,10 @@ class Vehicle:
         
         self.ieee[0] = self.x + random.gauss(0, 0.1)
         self.ieee[1] = self.y + random.gauss(0, 0.1)
-            
-    def readEncoder(self):              #encoder counts every 0.5 degrees, so convert from rad to deg, then multiply by 2
+        
+    # encoder counts every 0.5 degrees, so convert from rad to deg, 
+    # then multiply by 2    
+    def readEncoder(self):              
         countsX = 2 * self.encoderX * 180 / 3.14159265359
         countsY = 2 * self.encoderY * 180 / 3.14159265359
         
