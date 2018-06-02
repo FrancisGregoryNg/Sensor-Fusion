@@ -2,22 +2,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 import agv_library as agv
 
+###############################################################################
+###############################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------   Function Definitions  ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+###############################################################################
+###############################################################################
+
 # Used for gettting the sensor measurements
 def get_measurements():
     global sim_time
+    
+    # Update the AGV model
     robot.updateModel()
     sim_time += robot.dt
     
-    # Get IEEE at the start
+    # Get IEEE values at the start
     IEEE_0_start, IEEE_1_start = robot.readIEEE()
     
     # Set time for counter encoder rotations to T seconds (1 second)
     timeout = sim_time + T
     
-    # Initialize the encoder
+    # Get the encoder values at the start
     encoder_0_start, encoder_1_start = robot.readEncoder()
     
     # Loop until timeout occurs
@@ -26,25 +33,29 @@ def get_measurements():
         robot.updateModel()
         sim_time += robot.dt
     
+    # Get encoder values again at the end
     encoder_0_end, encoder_1_end = robot.readEncoder()
     
-    # Get IEEE again at the end
+    # Get IEEE values again at the end
     IEEE_0_end, IEEE_1_end = robot.readIEEE()
     
+    # Take the average of signal values across time T
     IEEE_0 = (IEEE_0_start + IEEE_0_end) / 2
     IEEE_1 = (IEEE_1_start + IEEE_1_end) / 2
     
+    # Take the difference of the encoder values across time T 
     encoder_0 = encoder_0_end - encoder_0_start
     encoder_1 = encoder_1_end - encoder_1_start
     
+    # Update the AGV model
     robot.updateModel()
     sim_time += robot.dt
+    
     # Return values
     return IEEE_0, IEEE_1, encoder_0, encoder_1
     
 # Used for predicting measurement values based on state values of a particle
 def predict_measurements(position_x, position_y, velocity_x, velocity_y): 
-        
     # Given the positions, the distances to the transmitters can be calculated
     # Transmitter 0 is located at (0, 0) or (0, 0)
     # Transmitter 1 is located at (max_x, 0) or (room_width, 0)
@@ -62,11 +73,11 @@ def predict_measurements(position_x, position_y, velocity_x, velocity_y):
     encoder_0 = (velocity_x * T) / (np.pi * diameter * 0.5 / 360)
     encoder_1 = (velocity_y * T) / (np.pi * diameter * 0.5 / 360)
 
+    # Return values
     return IEEE_0, IEEE_1, encoder_0, encoder_1
 
+# Get the position using the IEEE 802.15.4a values
 def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
-    # Get the position using the IEEE 802.15.4a values
-    
     # Use the empirically-determined factor for the inverse-square law
     # signal_strength = factor * (1 / distance ** 2)
     # Transmitter 0 is located at (0, 0) or (0, 0)
@@ -90,13 +101,13 @@ def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
     position_y = ((distance_0 * np.sin(angle_0))
                   + (distance_1 * np.sin(angle_1))) / 2
 
-    # Get the position using the two encoder values
-
     # For two pairs of omni-wheels, with one encoder for each pair
     # Each pair is coupled so they move together
     # One pair moves in the x-direction, the other in the y-direction
     velocity_x = (encoder_0 / T) * np.pi * diameter * 0.5 / 360
     velocity_y = (encoder_1 / T) * np.pi * diameter * 0.5 / 360
+    
+    # Return values
     return position_x, position_y, velocity_x, velocity_y
 
 # Get the signal equivalent of IEEE because simulation gives the position
@@ -112,11 +123,11 @@ def get_IEEE(position_x, position_y):
     IEEE_0 = factor_0 / distance_squared_0
     IEEE_1 = factor_1 / distance_squared_1
     
+    # Return values
     return IEEE_0, IEEE_1
 
+# Get the position using the IEEE 802.15.4a values
 def get_IEEE_plot_data(IEEE_0, IEEE_1):
-    # Get the position using the IEEE 802.15.4a values
-    
     # Use the empirically-determined factor for the inverse-square law
     # signal_strength = factor * (1 / distance ** 2)
     # Transmitter 0 is located at (0, 0) or (0, 0)
@@ -139,69 +150,59 @@ def get_IEEE_plot_data(IEEE_0, IEEE_1):
                   + (room_width - distance_1 * np.cos(angle_1))) / 2          
     position_y = ((distance_0 * np.sin(angle_0))
                   + (distance_1 * np.sin(angle_1))) / 2
+    
+    # Return values
     return position_x, position_y
 
+# Get the position using the encoder values  
 def get_encoder_plot_data(encoder_0, encoder_1, prior_x, prior_y):
+    # The prior position is purely from the previous iteration of this function
     position_x = prior_x + encoder_0 * np.pi * diameter * 0.5 / 360
     position_y = prior_y + encoder_1 * np.pi * diameter * 0.5 / 360
+    
+    # Return values
     return position_x, position_y
 
+###############################################################################
+###############################################################################    
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------      Initialization     ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+###############################################################################
+###############################################################################
+
+#------------------------------------------------------------------------------
+# Define the parameters
+#------------------------------------------------------------------------------
     
-robot = agv.Vehicle(0.024, 2, 0.8, 0.001)
-
-# Initialize simulation time
-sim_time = 0
-
-# Initialize starting state and previous state to zero
-starting_position_x = 0
-starting_position_y = 0
-starting_velocity_x = 0
-starting_velocity_y = 0
-previous_position_x = 0
-previous_position_y = 0
-previous_velocity_x = 0
-previous_velocity_y = 0
-
-# Prepare the arrays to store the position histories for plotting
-actual_plot_data = np.zeros((1, 2), dtype = float)
-IEEE_plot_data = np.zeros((1, 2), dtype = float)
-encoder_plot_data = np.zeros((1, 2), dtype = float)
-estimated_plot_data = np.zeros((1, 2), dtype = float)
-    
-# Initialize the state vector
-state_vector = np.zeros(4, dtype = float)
-
 # number of particles is set heuristically
 number_of_particles = 1000
+
+# Define the factor of encoder contribution compared to the IEEE 802.15.4a
+weight_scale = 0.25
+
+# Define the factor of contribution of direct sensor state campared to old data
+# There is a possibility that particles are degenerate even through resampling
+direct_scale = 0.25
 
 # Define the factor of contribution of previous state campared to new data
 # The time update of the state will not simply neglect the previous estimation
 lookback_scale = 0.75
 
-#------------------------------------------------------------------------------
-# Values for encoder
-#------------------------------------------------------------------------------
+# Set the lookback scale for the other method
+n_lookback_scale = lookback_scale
 
-# Prepare starting position for encoder position update
-encoder_position_x = starting_position_x
-encoder_position_y = starting_position_y
+# Define the covariance of process noise and measurement noise
+covariance_process = 0.25
+covariance_measurement = 0.25
+standard_deviation_process = np.sqrt(covariance_measurement)
+standard_deviation_measurement = np.sqrt(covariance_measurement)
 
-# Define the diameter of each omni-wheel is in meters (m)
-diameter = 0.024 * 2
+# Mean is zero (white noise) for both process and measurement noise 
+mean = 0
 
 # Define the time in seconds (s) wherein velocity is measured
 T = 0.1
-
-#------------------------------------------------------------------------------
-# Values for IEEE 802.15.4a
-#------------------------------------------------------------------------------
-
-# Define the proportionality factors for signal strength
-factor_0 = 1
-factor_1 = 1
 
 # Define the room dimensions (width, length) correspond to (x, y)
 # The origin starts at a selected corner of the room
@@ -209,17 +210,88 @@ factor_1 = 1
 room_width = 5
 room_length = 5
 
-#------------------------------------------------------------------------------
-# Draw samples from a uniform distribution (initial distribution)
-#------------------------------------------------------------------------------
+# Define the diameter of each omni-wheel is in meters (m)
+diameter = 0.024 * 2
 
-# The basis for using uniform distribution is page 47 of XR-EE-SB 2012:015
+# Define the proportionality factors for signal strength
+factor_0 = 1
+factor_1 = 1
+
+#------------------------------------------------------------------------------
+# Prepare empty/basic arrays and values
+#------------------------------------------------------------------------------
+    
+# Set the starting state to zero
+starting_position_x = 0
+starting_position_y = 0
+starting_velocity_x = 0
+starting_velocity_y = 0
+
+# Prepare starting position for encoder position update
+encoder_position_x = starting_position_x
+encoder_position_y = starting_position_y
+
+# Set the previous state to zero
+previous_position_x = 0
+previous_position_y = 0
+previous_velocity_x = 0
+previous_velocity_y = 0
+
+# Set the previous state to zero (for the non-particle filter)
+n_previous_position_x = 0
+n_previous_position_y = 0
+n_previous_velocity_x = 0
+n_previous_velocity_y = 0
+
+# Create an array of ones for use in computations
+ones = np.ones((number_of_particles, 1), dtype = float)
+
+# Prepare the matrix for storing predicted measurements
+# IEEE_0, IEEE_1, encoder_0, encoder_1
+predicted = np.zeros((number_of_particles, 4), dtype = float)
+
+# Prepare the matrix for storing white Gaussian noise values
+noise_measurement = np.zeros((number_of_particles, 1), dtype = float)
+noise_process = np.zeros((number_of_particles, 2), dtype = float)
+
+# Initialize the vector for direct sensor state
+direct_sensor = np.zeros(4, dtype = float)
+
+# Prepare the arrays to store the position histories for plotting
+actual_plot_data = np.zeros((1, 2), dtype = float)
+IEEE_plot_data = np.zeros((1, 2), dtype = float)
+encoder_plot_data = np.zeros((1, 2), dtype = float)
+estimated_plot_data = np.zeros((1, 2), dtype = float)
+
+# Prepare the array to store the position histor for plotting of other method
+n_estimated_plot_data = np.zeros((1, 2), dtype = float)
+
+# Initialize the weights as equal for all particles
+weight = np.ones((number_of_particles, 1), dtype = float)
+weight = weight / number_of_particles
+
+# Initialize the temporary weights due to IEEE 802.15.4a and encoder values
+weight_IEEE = np.zeros((number_of_particles, 1), dtype = float)
+weight_encoder = np.zeros((number_of_particles, 1), dtype = float)
+
+# Initialize the temporary arrays for resampling
+resample = np.zeros((number_of_particles, 1), dtype = int)
+weight_resample = np.zeros((number_of_particles, 1), dtype = float)
+state_matrix_resample = np.zeros((number_of_particles, 4), dtype = float)
 
 # Initialize the state matrix with zeros
 # Use the constant velocity dynamic model
+# Entries are: position_x, position_y, velocity_x, velocity_y
 # The state matrix is composed of the state vectors of all particles
-
 state_matrix = np.zeros((number_of_particles, 4), dtype = float)
+    
+# Initialize the state vector (for the non-particle filter)
+state_vector = np.zeros(4, dtype = float)
+
+#------------------------------------------------------------------------------
+# Draw samples from a uniform distribution (initial distribution)
+#------------------------------------------------------------------------------
+# The basis for using uniform distribution is page 47 of XR-EE-SB 2012:015
 
 # Initialize state data for each particle      
 # The initial distribution is set with assumed maximum errors
@@ -254,48 +326,8 @@ state_matrix[:, 3] = np.random.uniform(minimum_velocity_y, maximum_velocity_y,
                                        number_of_particles)
 
 #------------------------------------------------------------------------------
-# Initialize the weights
+# Final preparations for main loop
 #------------------------------------------------------------------------------
-
-# Initialize the weights as equal for all particles
-weight = np.ones((number_of_particles, 1), dtype = float)
-weight = weight / number_of_particles
-
-# Initialize the temporary weights due to IEEE 802.15.4a and encoder values
-weight_IEEE = np.zeros((number_of_particles, 1), dtype = float)
-weight_encoder = np.zeros((number_of_particles, 1), dtype = float)
-
-# Initialize the temporary arrays for resampling
-resample = np.zeros((number_of_particles, 1), dtype = int)
-weight_resample = np.zeros((number_of_particles, 1), dtype = float)
-state_matrix_resample = np.zeros((number_of_particles, 4), dtype = float)
-
-# Define the factor of encoder contribution compared to the IEEE 802.15.4a
-weight_scale = 0.25
-    
-#------------------------------------------------------------------------------
-# Prepare measurements for main loop
-#------------------------------------------------------------------------------
-
-# Get IEEE 802.15.4a and encoder values
-IEEE_0, IEEE_1, encoder_0, encoder_1 = get_measurements()
-    
-# Prepare the matrix for storing predicted measurements
-# IEEE_0, IEEE_1, encoder_0, encoder_1
-predicted = np.zeros((number_of_particles, 4), dtype = float)
-
-# Prepare the matrix for storing white Gaussian noise values
-noise_process = np.zeros((number_of_particles, 4), dtype = float)
-noise_measurement = np.zeros((number_of_particles, 1), dtype = float)
-
-# Define the covariance of process noise and measurement noise
-covariance_process = 0.25
-covariance_measurement = 0.25
-standard_deviation_process = np.sqrt(covariance_measurement)
-standard_deviation_measurement = np.sqrt(covariance_measurement)
-
-# Mean is zero (white noise) for both process and measurement noise 
-mean = 0
 
 # Prepare the factors for updating the state matrix
 state_factor = np.array([[1, 0, T, 0],
@@ -307,35 +339,25 @@ noise_factor = np.array([[0.5 * T **2, 0],
                          [T, 0],
                          [0, T]])
     
-# Initialize the vector for direct sensor state
-direct_sensor = np.zeros(4, dtype = float)
+# Initialize the AGV
+robot = agv.Vehicle(0.024, 2, 0.8, 0.001)
+sim_time = 0    
 
-# Define the factor of contribution of direct sensor state campared to old data
-# There is a possibility that particles are degenerate even through resampling
-direct_scale = 0.25
+# Get IEEE 802.15.4a and encoder values
+IEEE_0, IEEE_1, encoder_0, encoder_1 = get_measurements()
 
-#------------------------------------------------------------------------------
-# Not particle filter
-#------------------------------------------------------------------------------
-
-# Prepare the array to store the position histor for plotting of other method
-n_estimated_plot_data = np.zeros((1, 2), dtype = float)
-
-# Initialize the state vector
-state_vector = np.zeros(4, dtype = float)
-
-# Set the lookback scale for the other method
-n_lookback_scale = lookback_scale
-
+###############################################################################
+###############################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------  Main Loop (Iterations) ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-print("Start of main loop\n")
-# Repeat the loop for a given amount of time
+###############################################################################
+###############################################################################
 
+# Repeat the loop for a given amount of time
+print("Start of main loop\n")
 sim_duration = 20
 count = 0
-
 while sim_time < sim_duration:
     count += 1
     print("Iteration # " + str(count), end = "")
@@ -372,34 +394,33 @@ while sim_time < sim_duration:
     # Get actual position from simulation
     actual_position_x, actual_position_y = robot.readActual()
     
-    # Actual position for plot data
-    new_actual = np.array([[actual_position_x, actual_position_y]])
-    actual_plot_data = np.append(actual_plot_data, new_actual, axis = 0)
-    
     # Get IEEE 802.15.4a and encoder values
     IEEE_0, IEEE_1, encoder_0, encoder_1 = get_measurements()
     
-    # Get position if only purely IEEE 802.15.4a data is used for localization
+    # NOTE: delete this cluster if IEEE values are signal positions already
+    # The simulation library gave positions instead of signal values
     IEEE_position_x, IEEE_position_y = IEEE_0, IEEE_1
+    IEEE_0, IEEE_1 = get_IEEE(IEEE_position_x, IEEE_position_y)
     
-    # Get the actual measurements because simulation gave positions
-    IEEE_0, IEEE_1 = get_IEEE(IEEE_0, IEEE_1)
-    
-    # Calculate the IEEE position
+    # Get position if only purely IEEE data is used for localization
     # Unneeded because simulation provides position rather than signal strength
     # Might be needed in the future when signal strength is given instead
     IEEE_position_x, IEEE_position_y = get_IEEE_plot_data(IEEE_0, IEEE_1)
-    
-    # Record IEEE position for plot data
-    new_IEEE = np.array([[IEEE_position_x, IEEE_position_y]])
-    IEEE_plot_data = np.append(IEEE_plot_data, new_IEEE, axis = 0)
     
     # Get position if only purely encoder data is used for localization
     (encoder_position_x,
      encoder_position_y) = get_encoder_plot_data(encoder_0, encoder_1, 
                                                  encoder_position_x,
                                                  encoder_position_y)
-        
+    
+    # Record actual position for plot data
+    new_actual = np.array([[actual_position_x, actual_position_y]])
+    actual_plot_data = np.append(actual_plot_data, new_actual, axis = 0)
+
+    # Record IEEE position for plot data
+    new_IEEE = np.array([[IEEE_position_x, IEEE_position_y]])
+    IEEE_plot_data = np.append(IEEE_plot_data, new_IEEE, axis = 0)
+    
     # Record encoder position for plot data
     new_encoder = np.array([[encoder_position_x, encoder_position_y]])
     encoder_plot_data = np.append(encoder_plot_data, new_encoder, axis = 0)
@@ -407,9 +428,6 @@ while sim_time < sim_duration:
 #------------------------------------------------------------------------------
 # Modify the weights
 #------------------------------------------------------------------------------
-
-    # Create an array of ones for use in computations
-    ones = np.ones((number_of_particles, 1), dtype = float)
 
     # Randomize measurement noise (white Gaussian noise)
     noise_measurement = np.random.normal(mean, standard_deviation_measurement,
@@ -429,6 +447,10 @@ while sim_time < sim_duration:
     weight_total = np.sum(weight_IEEE)
     weight_IEEE = weight_IEEE / weight_total
 
+    # Randomize measurement noise (white Gaussian noise)
+    noise_measurement = np.random.normal(mean, standard_deviation_measurement,
+                                         (number_of_particles, 1))  
+    
     # Update the weights based on encoder values
     # Take the average of the errors from the two sensors
     # Use the last two columns from the measurement prediction matrix
@@ -459,29 +481,29 @@ while sim_time < sim_duration:
 # Output sensor-fused value
 #------------------------------------------------------------------------------
 
-    # The estimated position values are the main output
-    # These values are used for the next iteration
-    # Get the summation of the element-wise product of values and weights
-    
+    # Reshape the arrays to allow for calculations
     temp_position_x = np.reshape(state_matrix[:, 0], (number_of_particles, 1))
     temp_position_y = np.reshape(state_matrix[:, 1], (number_of_particles, 1))
     temp_velocity_x = np.reshape(state_matrix[:, 2], (number_of_particles, 1))
     temp_velocity_y = np.reshape(state_matrix[:, 3], (number_of_particles, 1))
     
+    # The estimated position values are the main output
+    # These values are used for the next iteration
+    # Get the summation of the element-wise product of values and weights
     estimated_position_x = np.sum(np.multiply(temp_position_x, weight))
     estimated_position_y = np.sum(np.multiply(temp_position_y, weight))
     estimated_velocity_x = np.sum(np.multiply(temp_velocity_x, weight))
     estimated_velocity_y = np.sum(np.multiply(temp_velocity_y, weight))
     
+    # Update the previous iteration values
     previous_position_x = estimated_position_x
     previous_position_y = estimated_position_y
     previous_velocity_x = estimated_velocity_x
     previous_velocity_y = estimated_velocity_y
 
+    # Record estimated position for plot data
     print("\t\t\t\tEstimated x = " + str(estimated_position_x))
     print("\t\t\t\tEstimated y = " + str(estimated_position_y))
-    
-    # Record estimated position for plot data
     new_estimate = np.array([[estimated_position_x, estimated_position_y]])
     estimated_plot_data = np.append(estimated_plot_data, new_estimate, 
                                     axis = 0)
@@ -491,18 +513,17 @@ while sim_time < sim_duration:
 #------------------------------------------------------------------------------
 
     # Resample if the number of effective particles is below a threshold
+    # The systematic within residual resampling method is used
+    # The basis for this is page 21 of by Murray Pollock's 
+    # “Introduction to Particle Filtering” Discussion - Notes
     effective_number_of_particles = 1 / np.sum(np.power(weight, 2))
-    
     if effective_number_of_particles < 0.8 * number_of_particles:
-        # The systematic within residual resampling method is used
-        # The basis for this is page 21 of by Murray Pollock's 
-        # “Introduction to Particle Filtering” Discussion - Notes
-        
         # Get the integer part and the residual part of the scaled weights
         (number_of_copies, residual) = np.divmod(number_of_particles * weight, 
                                                  1)
-        
-        # Select copies based on integer part of scaled weights
+
+        # Select copies by taking note of the particle index
+        # Base the selection on the integer part of scaled weights
         selected = 0
         for particle in range(number_of_particles):
             for copy in range(int(number_of_copies[particle])):
@@ -518,6 +539,7 @@ while sim_time < sim_duration:
         
         # Make sure that the sequence ends with 1 (not more or less)
         cumulative_sum[-1] = 1
+        
         # Select copies based on systematic strategy on the residual
         current_division = 0
         for particle in range(number_of_particles):
@@ -525,6 +547,7 @@ while sim_time < sim_duration:
                 resample[selected] = particle
                 selected += 1
                 current_division +=1
+                # NOTE: patch-up solution, try to resolve
                 if selected == number_of_particles:
                     break
                 
@@ -558,15 +581,15 @@ while sim_time < sim_duration:
     # Get the position and velocities of the particles
     state_matrix[:, 0] = ((state_matrix[:, 0] +
                            lookback_scale * (previous_position_x +
-                           previous_velocity_x * T)) / (lookback_scale+1))
+                           previous_velocity_x * T)) / (lookback_scale + 1))
     state_matrix[:, 1] = ((state_matrix[:, 1] +
                            lookback_scale * (previous_position_y +
-                           previous_velocity_y * T)) / (lookback_scale+1))
+                           previous_velocity_y * T)) / (lookback_scale + 1))
     
     # Constantly reference state using direct sensor input
     direct_sensor[:] = get_state(IEEE_0, IEEE_1, encoder_0, encoder_1)
     
-    # state_vector[0] = x-position
+    # state_matrix[0] = x-position vector
     minimum_position_x = max([direct_sensor[0] - position_buffer, 0])
     maximum_position_x = min([direct_sensor[0] + position_buffer, 
                               room_width])
@@ -578,7 +601,7 @@ while sim_time < sim_duration:
                            ) / (direct_scale + 1))
                            
     
-    # state_vector[1] = y-position
+    # state_matrix[1] = y-position vector
     minimum_position_y = max([direct_sensor[1] - position_buffer, 0])
     maximum_position_y = min([direct_sensor[1] + position_buffer,
                               room_length])
@@ -589,7 +612,7 @@ while sim_time < sim_duration:
                                              number_of_particles)
                            ) / (direct_scale + 1))
     
-    # state_vector[2] = x-velocity
+    # state_matrix[2] = x-velocity vector
     minimum_velocity_x = direct_sensor[2] - velocity_buffer
     maximum_velocity_x = direct_sensor[2] + velocity_buffer
     state_matrix[:, 2] = ((state_matrix[:, 2] +
@@ -599,7 +622,7 @@ while sim_time < sim_duration:
                                              number_of_particles)
                            ) / (direct_scale + 1))
     
-     # state_vector[3] = y-velocity
+    # state_matrix[3] = y-velocity vector
     minimum_velocity_y = direct_sensor[3] - velocity_buffer
     maximum_velocity_y = direct_sensor[3] + velocity_buffer
     state_matrix[:, 3] = ((state_matrix[:, 3] + 
@@ -613,13 +636,16 @@ while sim_time < sim_duration:
 # Not particle filter
 #------------------------------------------------------------------------------
 
+    # Use sensor values to get the state
+    # Then, refer back to the previous value, putting more weight to it
+    # The effect will be a lag in the estimation, cleaning up erratic movements
     state_vector[:] = get_state(IEEE_0, IEEE_1, encoder_0, encoder_1)
     state_vector[0] = ((state_vector[0] + 
-                        n_lookback_scale * (previous_position_x + 
-                        previous_velocity_x * T)) / (n_lookback_scale + 1))
+                        n_lookback_scale * (n_previous_position_x + 
+                        n_previous_velocity_x * T)) / (n_lookback_scale + 1))
     state_vector[1] = ((state_vector[1] + 
-                        n_lookback_scale * (previous_position_y + 
-                        previous_velocity_y * T)) / (n_lookback_scale + 1))
+                        n_lookback_scale * (n_previous_position_y + 
+                        n_previous_velocity_y * T)) / (n_lookback_scale + 1))
     
     # The state vector will be the sensor-fused values
     n_estimated_position_x = state_vector[0]
@@ -639,10 +665,14 @@ while sim_time < sim_duration:
     n_estimated_plot_data = np.append(n_estimated_plot_data, n_new_estimate, 
                                       axis = 0)
     
+###############################################################################
+###############################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #------------------------ -  Consolidate Results   ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+###############################################################################
+###############################################################################
+    
 #------------------------------------------------------------------------------
 # Convert numpy array to list
 #------------------------------------------------------------------------------
