@@ -181,10 +181,6 @@ number_of_particles = 1000
 # Define the factor of encoder contribution compared to the IEEE 802.15.4a
 weight_scale = 0.25
 
-# Define the factor of contribution of direct sensor state campared to old data
-# There is a possibility that particles are degenerate even through resampling
-direct_scale = 0.25
-
 # Define the factor of contribution of previous state campared to new data
 # The time update of the state will not simply neglect the previous estimation
 lookback_scale = 0.75
@@ -284,7 +280,7 @@ state_matrix_resample = np.zeros((number_of_particles, 4), dtype = float)
 # Entries are: position_x, position_y, velocity_x, velocity_y
 # The state matrix is composed of the state vectors of all particles
 state_matrix = np.zeros((number_of_particles, 4), dtype = float)
-    
+   
 # Initialize the state vector (for the non-particle filter)
 state_vector = np.zeros(4, dtype = float)
 
@@ -328,16 +324,6 @@ state_matrix[:, 3] = np.random.uniform(minimum_velocity_y, maximum_velocity_y,
 #------------------------------------------------------------------------------
 # Final preparations for main loop
 #------------------------------------------------------------------------------
-
-# Prepare the factors for updating the state matrix
-state_factor = np.array([[1, 0, T, 0],
-                         [0, 1, 0, T],
-                         [0, 0, 1, 0],
-                         [0, 0, 0, 1]])
-noise_factor = np.array([[0.5 * T **2, 0],
-                         [0, 0.5 * T **2],
-                         [T, 0],
-                         [0, T]])
     
 # Initialize the AGV
 robot = agv.Vehicle(0.024, 2, 0.8, 0.001)
@@ -565,72 +551,34 @@ while sim_time < sim_duration:
 #------------------------------------------------------------------------------
 # Update the particles
 #------------------------------------------------------------------------------
+    # Update the state of the particle based on noise and previous state
+    # The basis for this is page 47 of 978-1580536318/158053631X
     
     # Randomize process noise (white Gaussian noise)
     noise_process = np.random.normal(mean, standard_deviation_process, 
                                      (number_of_particles, 2))
-    
-    # Update the state of the particle based on noise and previous state
-    # The previous state was used for measurement prediction
-    # The basis for this is page 47 of 978-1580536318/158053631X
-    for particle in range(number_of_particles):
-        state_update = np.matmul(state_factor, state_matrix[particle, :]) 
-        noise_update = np.matmul(noise_factor, noise_process[particle, :])
-        state_matrix[particle] = np.add([state_update], [noise_update])
 
-    # Get the position and velocities of the particles
+    # Update the position using position, velocity, and acceleration (noise)
+    state_matrix[:, 0] = (state_matrix[:, 0] + 
+                          T * state_matrix[:, 2] + 
+                          0.5 * (T ** 2) * noise_process[:, 0])
+    state_matrix[:, 1] = (state_matrix[:, 1] + 
+                          T * state_matrix[:, 3] + 
+                          0.5 * (T ** 2) * noise_process[:, 1])
+    
+    # Update the velocity using velocity and acceleration (noise)
+    state_matrix[:, 2] = (state_matrix[:, 2] + 
+                          T * noise_process[:, 0])
+    state_matrix[:, 3] = (state_matrix[:, 3] + 
+                          T * noise_process[:, 1])
+    
+    # Modify results based on looking back at the previous estimation
     state_matrix[:, 0] = ((state_matrix[:, 0] +
                            lookback_scale * (previous_position_x +
                            previous_velocity_x * T)) / (lookback_scale + 1))
     state_matrix[:, 1] = ((state_matrix[:, 1] +
                            lookback_scale * (previous_position_y +
                            previous_velocity_y * T)) / (lookback_scale + 1))
-    
-    # Constantly reference state using direct sensor input
-    direct_sensor[:] = get_state(IEEE_0, IEEE_1, encoder_0, encoder_1)
-    
-    # state_matrix[0] = x-position vector
-    minimum_position_x = max([direct_sensor[0] - position_buffer, 0])
-    maximum_position_x = min([direct_sensor[0] + position_buffer, 
-                              room_width])
-    state_matrix[:, 0] = ((state_matrix[:, 0] +
-                           direct_scale * 
-                           np.random.uniform(minimum_position_x, 
-                                             maximum_position_x,
-                                             number_of_particles)
-                           ) / (direct_scale + 1))
-                           
-    
-    # state_matrix[1] = y-position vector
-    minimum_position_y = max([direct_sensor[1] - position_buffer, 0])
-    maximum_position_y = min([direct_sensor[1] + position_buffer,
-                              room_length])
-    state_matrix[:, 1] = ((state_matrix[:, 1] + 
-                           direct_scale * 
-                           np.random.uniform(minimum_position_y, 
-                                             maximum_position_y,
-                                             number_of_particles)
-                           ) / (direct_scale + 1))
-    
-    # state_matrix[2] = x-velocity vector
-    minimum_velocity_x = direct_sensor[2] - velocity_buffer
-    maximum_velocity_x = direct_sensor[2] + velocity_buffer
-    state_matrix[:, 2] = ((state_matrix[:, 2] +
-                           direct_scale * 
-                           np.random.uniform(minimum_velocity_x, 
-                                             maximum_velocity_x,
-                                             number_of_particles)
-                           ) / (direct_scale + 1))
-    
-    # state_matrix[3] = y-velocity vector
-    minimum_velocity_y = direct_sensor[3] - velocity_buffer
-    maximum_velocity_y = direct_sensor[3] + velocity_buffer
-    state_matrix[:, 3] = ((state_matrix[:, 3] + 
-                          direct_scale * 
-                          np.random.uniform(minimum_velocity_y, 
-                                            maximum_velocity_y,
-                                            number_of_particles) 
-                           ) / (direct_scale + 1))
                                
 #------------------------------------------------------------------------------
 # Not particle filter
