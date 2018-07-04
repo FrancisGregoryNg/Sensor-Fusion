@@ -35,12 +35,10 @@ def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
     # Return values
     return position_x, position_y, velocity_x, velocity_y
 
-###############################################################################
 ###############################################################################    
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------      Initialization     ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-###############################################################################
 ###############################################################################
    
 #------------------------------------------------------------------------------
@@ -60,10 +58,8 @@ state_vector = np.zeros(4, dtype = float)
 n_estimated_plot_data = np.zeros((1, 2), dtype = float)
 
 # Define the covariance of process noise and measurement noise
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
 std_dev_process = 0.0605935153135
 std_dev_measurement = 9.68756654964
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
 
 # Mean is zero (white noise) for both process and measurement noise 
 mean = 0
@@ -164,25 +160,19 @@ robot = agv.Vehicle(0.024, 2, 0.8, 0.001)
 sim_time = 0    
 
 ###############################################################################
-###############################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #-------------------------  Main Loop (Iterations) ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ###############################################################################
-###############################################################################
 
 # Repeat the loop for a given amount of time
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
 print("Start of main loop\n")
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
 sim_duration = 20
 count = 0
 while sim_time < sim_duration:
     count += 1
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
     print("Iteration # " + str(count), end = "")
     print("; sim_time = " + "{:.2f}".format(sim_time) + "s")
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
     robot.setMotor(30, 10)
     set_1 = 0
     set_2 = 0
@@ -349,12 +339,10 @@ while sim_time < sim_duration:
     estimated_velocity_y = measured_velocity_y
 
     # Record estimated position for plot data
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
     print("\t\t\t\tEstimated x = " + str(estimated_position_x))
     print("\t\t\t\tEstimated y = " + str(estimated_position_y))
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
     new_estimate = np.array([[estimated_position_x, estimated_position_y]])
-    estimated_plot_data = np.append(estimated_plot_data, new_estimate, 
+    estimated_plot_data = np.append(estimated_plot_data, new_estimate,
                                     axis = 0)
     
 #------------------------------------------------------------------------------
@@ -465,11 +453,9 @@ while sim_time < sim_duration:
                                       axis = 0)
 
 ###############################################################################
-###############################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #------------------------ -  Consolidate Results   ----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-###############################################################################
 ###############################################################################
     
     progressive_plot = 1
@@ -496,10 +482,14 @@ while sim_time < sim_duration:
 #------------------------------------------------------------------------------
         
         # Overlapping plots
-        plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
-        plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
-        plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
-        plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
+        plt.plot(actual_vertices_x, actual_vertices_y, 'r')
+        plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
+        plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
+        plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
+        plt.plot(new_actual[0, 0], new_actual[0, 1], 'r.')
+        plt.plot(new_IEEE[0, 0], new_IEEE[0, 1], 'b.')
+        plt.plot(new_encoder[0, 0], new_encoder[0, 1], 'g.')
+        plt.plot(new_estimate[0, 0], new_estimate[0, 1], 'm.')
 #        plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
         print("\033[H\033[J")
         plt.show()
@@ -527,45 +517,45 @@ if progressive_plot == 0:
 
     # Subplot
     plt.subplot(2,3,1)
-    plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
+    plt.plot(actual_vertices_x, actual_vertices_y, 'r')
     plt.title("Actual")
     plt.subplot(2,3,2)
-    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
+    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
     plt.title("IEEE")
     plt.subplot(2,3,3)
-    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
+    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
     plt.title("Encoder")
     plt.subplot(2,3,4)
-    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
+    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
     plt.title("Estimate")
     plt.subplot(2,3,6)
-    plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
+    plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm')
     plt.title("Not particle filter")
     plt.tight_layout()
     plt.tight_layout()
     plt.show()
     
     # Multiple plots
-    plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
+    plt.plot(actual_vertices_x, actual_vertices_y, 'r')
     plt.title("Actual")
     plt.show()
-    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
+    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
     plt.title("IEEE")
     plt.show()
-    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
+    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
     plt.title("Encoder")
     plt.show()
-    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
+    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
     plt.title("Estimate")
     plt.show()
-    plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
+    plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm')
     plt.title("Not particle filter")
     plt.show()
 
     # Overlapping plots
-    plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
-    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
-    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
-    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
-    plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
+    plt.plot(actual_vertices_x, actual_vertices_y, 'r')
+    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
+    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
+    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
+    plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm')
     plt.show()
