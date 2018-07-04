@@ -1,23 +1,6 @@
 import numpy as np
-import time
 import matplotlib.pyplot as plt
 import agv_library as agv
-
-################################  N   O   T   E  ##############################
-# For each section for Part 1 and Part 2 of the particle swarm optimization
-# Press ctrl+1 (uncomment) to use particle swarm optimization
-# To ignore particle swarm optimization, use ctrl+1 again (comment)
-
-# For the section after Part 1 of the particle swarm optimization,
-# Select the lines and press tab twice if using particle swarm optimization
-# Comment lines marked as follows:
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
-# The line to be commented or uncommented.
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
-# Comment the entire section after Part 2 of the particle swarm optimization
-
-# Otherwise, shift+tab just enough for the first line to be left-aligned
-# Uncomment the marked lines
 
 def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
     # Use the empirically-determined factor for the inverse-square law
@@ -51,40 +34,6 @@ def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
     
     # Return values
     return position_x, position_y, velocity_x, velocity_y
-
-###############################################################################
-###############################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#-----------------  Particle Swarm Optimization - Part 1   --------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-###############################################################################
-###############################################################################
-
-#optimization_start = time.time()
-#swarm_particles = 50
-#max_std_dev = 10
-#swarm_position = np.random.uniform(0, max_std_dev, (swarm_particles, 2))
-#swarm_velocity = np.random.uniform(-0.1, 0.1, (swarm_particles, 2))
-#local_best_position = np.copy(swarm_position)
-#local_best_velocity = np.copy(swarm_velocity)
-#global_best_position = swarm_position[0, :]
-#global_best_velocity = swarm_velocity[0, :]
-#local_best_cost = np.full((swarm_particles), np.inf)
-#global_best_cost = np.inf
-#
-#epoch = 0
-#limit = 20
-#inertial_coefficient = 1
-#
-#while epoch < limit:
-#    epoch += 1
-#    print("Epoch = ", epoch, end='')
-#    print("; START OF EPOCH. Current global best:", global_best_cost)
-#    for element in range(swarm_particles):
-#        # Define the covariance of process noise and measurement noise
-#        std_dev_process = swarm_position[element, 0] 
-#        std_dev_measurement = swarm_position[element, 1] 
-
 
 ###############################################################################
 ###############################################################################    
@@ -515,76 +464,6 @@ while sim_time < sim_duration:
     n_estimated_plot_data = np.append(n_estimated_plot_data, n_new_estimate, 
                                       axis = 0)
 
-###############################################################################
-###############################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#-----------------  Particle Swarm Optimization - Part 2   --------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-###############################################################################
-###############################################################################
-        
-#            tune_from_obtainable_data = 0
-#            
-#            if tune_from_obtainable_data == 1:
-#                current_cost = np.sqrt(np.mean(
-#                                       np.square(
-#                                       np.subtract(estimated_plot_data,
-#                                                   n_estimated_plot_data))))
-#    
-#            if tune_from_obtainable_data == 0:
-#                current_cost = np.sqrt(np.mean(
-#                                       np.square(
-#                                       np.subtract(estimated_plot_data,
-#                                                   actual_plot_data))))
-#                
-#        if current_cost < local_best_cost[element]:
-#            print("Epoch = ", epoch, end='')
-#            print("; Updated local best for particle [{}]".format(element),
-#                  "from:", local_best_cost[element], end='')
-#            local_best_cost[element] = current_cost
-#            local_best_position[element, :] = swarm_position[element, :] 
-#            print(" | to:", local_best_cost[element])
-#            if local_best_cost[element] < global_best_cost:
-#                print("Epoch = ", epoch, end='')
-#                print("; Updated global best from:", global_best_cost, end='')
-#                global_best_cost = local_best_cost[element]
-#                global_best_position = swarm_position[element, :]
-#                global_best_velocity = swarm_velocity[element, :]
-#                print(" | to:", global_best_cost)
-#        
-#    if epoch > 0.20 * limit:
-#        inertial_coefficient = 0.8
-#    if epoch > 0.40 * limit:
-#        inertial_coefficient = 0.7
-#    if epoch > 0.60 * limit:
-#        inertial_coefficient = 0.6
-#    if epoch > 0.80 * limit:
-#        inertial_coefficient = 0.5
-#        
-#    swarm_position = np.add(swarm_position, swarm_velocity)
-#    swarm_position = np.clip(swarm_position, 0, max_std_dev)
-#    swarm_velocity = np.add(inertial_coefficient * swarm_velocity, 
-#                            2 * np.multiply(np.random.rand(swarm_particles, 2), 
-#                                            np.subtract(local_best_position,
-#                                                        swarm_position)),
-#                            2 * np.multiply(np.random.rand(swarm_particles, 2), 
-#                                            np.subtract(global_best_position,
-#                                                        swarm_position)))
-#
-#    print("Epoch = ", epoch, end='')
-#    print("; Current best_std_dev_process = ", global_best_position[0])
-#    print("Epoch = ", epoch, end='')
-#    print("; Current best_std_dev_measurement = ", global_best_position[1])
-#    optimization_end = time.time()
-#    optimization_duration = optimization_end - optimization_start
-#    (minutes, seconds) = np.divmod(optimization_duration, 60)
-#    print("Epoch = ", epoch, end='')
-#    print("; Duration since start of optimization = ", end='')
-#    print("{:.2f} minutes and {:.2f} seconds".format(minutes, seconds))
-#    
-#print("Epoch = ", epoch, end='')
-#print("; END OF OPTIMIZATION. Final global best:", global_best_cost)     
-  
 ###############################################################################
 ###############################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

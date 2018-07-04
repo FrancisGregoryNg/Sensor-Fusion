@@ -1,23 +1,6 @@
 import numpy as np
 import time
-import matplotlib.pyplot as plt
 import agv_library as agv
-
-################################  N   O   T   E  ##############################
-# For each section for Part 1 and Part 2 of the particle swarm optimization
-# Press ctrl+1 (uncomment) to use particle swarm optimization
-# To ignore particle swarm optimization, use ctrl+1 again (comment)
-
-# For the section after Part 1 of the particle swarm optimization,
-# Select the lines and press tab twice if using particle swarm optimization
-# Comment lines marked as follows:
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
-# The line to be commented or uncommented.
-#++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
-# Comment the entire section after Part 2 of the particle swarm optimization
-
-# Otherwise, shift+tab just enough for the first line to be left-aligned
-# Uncomment the marked lines
 
 def get_state(IEEE_0, IEEE_1, encoder_0, encoder_1):
     # Use the empirically-determined factor for the inverse-square law
@@ -109,13 +92,7 @@ while epoch < limit:
         previous_velocity_y = 0
         state_vector = np.zeros(4, dtype = float)
         n_estimated_plot_data = np.zeros((1, 2), dtype = float)
-        
-        # Define the covariance of process noise and measurement noise
-        #++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
-#        std_dev_process = 0.0
-#        std_dev_measurement = 7.86767620728
-        #++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
-        
+               
         # Mean is zero (white noise) for both process and measurement noise 
         mean = 0
         
@@ -223,17 +200,10 @@ while epoch < limit:
         ###############################################################################
         
         # Repeat the loop for a given amount of time
-        #++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
-#        print("Start of main loop\n")
-        #++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
         sim_duration = 20
         count = 0
         while sim_time < sim_duration:
             count += 1
-        #++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
-#            print("Iteration # " + str(count), end = "")
-#            print("; sim_time = " + "{:.2f}".format(sim_time) + "s")
-        #++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
             robot.setMotor(30, 10)
             set_1 = 0
             set_2 = 0
@@ -400,10 +370,6 @@ while epoch < limit:
             estimated_velocity_y = measured_velocity_y
         
             # Record estimated position for plot data
-        #++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
-#            print("\t\t\t\tEstimated x = " + str(estimated_position_x))
-#            print("\t\t\t\tEstimated y = " + str(estimated_position_y))
-        #++++++++++++++++++++++++++   Comment / Uncomment   ++++++++++++++++++++++++++#
             new_estimate = np.array([[estimated_position_x, estimated_position_y]])
             estimated_plot_data = np.append(estimated_plot_data, new_estimate, 
                                             axis = 0)
@@ -584,109 +550,3 @@ while epoch < limit:
     
 print("Epoch = ", epoch, end='')
 print("; END OF OPTIMIZATION. Final global best:", global_best_cost)     
-  
-###############################################################################
-###############################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#------------------------ -  Consolidate Results   ----------------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-###############################################################################
-###############################################################################
-    
-#    progressive_plot = 1
-#    
-#    if progressive_plot == 1:
-#        
-##------------------------------------------------------------------------------
-## Convert numpy array to list
-##------------------------------------------------------------------------------
-#
-#        actual_vertices_x = np.ndarray.tolist(actual_plot_data[:, 0])
-#        actual_vertices_y = np.ndarray.tolist(actual_plot_data[:, 1])
-#        IEEE_vertices_x = np.ndarray.tolist(IEEE_plot_data[:, 0])
-#        IEEE_vertices_y = np.ndarray.tolist(IEEE_plot_data[:, 1])
-#        encoder_vertices_x = np.ndarray.tolist(encoder_plot_data[:, 0])
-#        encoder_vertices_y = np.ndarray.tolist(encoder_plot_data[:, 1])
-#        estimated_vertices_x = np.ndarray.tolist(estimated_plot_data[:, 0])
-#        estimated_vertices_y = np.ndarray.tolist(estimated_plot_data[:, 1])
-#        n_estimated_vertices_x = np.ndarray.tolist(n_estimated_plot_data[:, 0])
-#        n_estimated_vertices_y = np.ndarray.tolist(n_estimated_plot_data[:, 1])
-#
-##------------------------------------------------------------------------------
-## Plot the different position data
-##------------------------------------------------------------------------------
-#        
-#        # Overlapping plots
-#        plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
-#        plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
-#        plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
-##        plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
-#        plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
-#        print("\033[H\033[J")
-#        plt.show()
-#        
-#if progressive_plot == 0:
-#    
-##------------------------------------------------------------------------------
-## Convert numpy array to list
-##------------------------------------------------------------------------------
-#
-#    actual_vertices_x = np.ndarray.tolist(actual_plot_data[:, 0])
-#    actual_vertices_y = np.ndarray.tolist(actual_plot_data[:, 1])
-#    IEEE_vertices_x = np.ndarray.tolist(IEEE_plot_data[:, 0])
-#    IEEE_vertices_y = np.ndarray.tolist(IEEE_plot_data[:, 1])
-#    encoder_vertices_x = np.ndarray.tolist(encoder_plot_data[:, 0])
-#    encoder_vertices_y = np.ndarray.tolist(encoder_plot_data[:, 1])
-#    estimated_vertices_x = np.ndarray.tolist(estimated_plot_data[:, 0])
-#    estimated_vertices_y = np.ndarray.tolist(estimated_plot_data[:, 1])
-#    n_estimated_vertices_x = np.ndarray.tolist(n_estimated_plot_data[:, 0])
-#    n_estimated_vertices_y = np.ndarray.tolist(n_estimated_plot_data[:, 1])
-#    
-##------------------------------------------------------------------------------
-## Plot the different position data
-##------------------------------------------------------------------------------
-#
-#    # Subplot
-#    plt.subplot(2,3,1)
-#    plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
-#    plt.title("Actual")
-#    plt.subplot(2,3,2)
-#    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
-#    plt.title("IEEE")
-#    plt.subplot(2,3,3)
-#    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
-#    plt.title("Encoder")
-#    plt.subplot(2,3,4)
-#    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
-#    plt.title("Estimate")
-#    plt.subplot(2,3,6)
-#    plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
-#    plt.title("Not particle filter")
-#    plt.tight_layout()
-#    plt.tight_layout()
-#    plt.show()
-#    
-#    # Multiple plots
-#    plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
-#    plt.title("Actual")
-#    plt.show()
-#    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
-#    plt.title("IEEE")
-#    plt.show()
-#    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
-#    plt.title("Encoder")
-#    plt.show()
-#    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
-#    plt.title("Estimate")
-#    plt.show()
-#    plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
-#    plt.title("Not particle filter")
-#    plt.show()
-#
-#    # Overlapping plots
-#    plt.plot(actual_vertices_x, actual_vertices_y, 'r,-')
-#    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b,-')
-#    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g,-')
-#    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm,-')
-#    plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'm,-')
-#    plt.show()
