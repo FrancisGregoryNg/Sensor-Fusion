@@ -1,0 +1,14 @@
+Pour Copper Report
+------------------
+
+Report Written:     Friday, June 01, 2018
+Project Path:       D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical2\revised.prj
+Design Path:        D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical2\revised.pcb
+Design Title:       
+Created:            5/31/2018 11:10:12 PM
+Last Saved:         6/1/2018 12:28:24 AM
+Editing Time:       84 min
+Units:              mm (precision 3)
+
+
+End Of Report.

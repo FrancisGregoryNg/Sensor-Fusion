@@ -1,0 +1,80 @@
+Design Rule Check Report
+------------------------
+
+Report Written:     Friday, June 01, 2018
+Project Path:       D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical2\revised.prj
+Design Path:        D:\D Documents\Git\Sensor-Fusion-using-a-Particle-Filter\Schematics\Electrical2\revised.pcb
+Design Title:       
+Created:            5/31/2018 11:10:12 PM
+Last Saved:         6/1/2018 12:18:22 AM
+Editing Time:       77 min
+Units:              mm (precision 3)
+
+
+Results
+=======
+
+Pad to Board Error (P-B) between (467.900 448.000) and (467.500 448.000) on Layer "[All]".
+    Error between Pad and Board, Gap is 0.337 needs to be 2.540.
+Pad to Board Error (P-B) between (532.100 448.000) and (532.500 448.000) on Layer "[All]".
+    Error between Pad and Board, Gap is 0.337 needs to be 2.540.
+Pad to Pad Error (P-P) between (482.031 482.699) and (481.776 482.299) on Layer "[All]".
+    Error between Component Pad J5.1 (Net '9V') and Component Pad J5.3 (Net 'GND'), Gap is 0.474 needs to be 0.500.
+Pad to Board Error (P-B) between (531.262 507.770) and (532.500 507.770) on Layer "[All]".
+    Error between Component Pad R8.1 (Net 'N0003') and Board, Gap is 1.175 needs to be 2.540.
+Pad to Board Error (P-B) between (531.262 515.390) and (532.500 515.390) on Layer "[All]".
+    Error between Component Pad R8.2 (Net 'GND') and Board, Gap is 1.175 needs to be 2.540.
+Track to Board Error (T-B) between (530.500 527.390) and (532.500 527.390) on Layer "Bottom Copper".
+    Error between Track (Net 'GND') and Board, Gap is 1.687 needs to be 2.032.
+Track to Board Error (T-B) between (530.500 505.000) and (532.500 505.000) on Layer "Bottom Copper".
+    Error between Track (Net 'N0003') and Board, Gap is 1.687 needs to be 2.032.
+Track to Board Error (T-B) between (469.500 495.000) and (467.500 495.000) on Layer "Bottom Copper".
+    Error between Track (Net '9V') and Board, Gap is 1.587 needs to be 2.032.
+
+Number of errors found : 8
+
+
+Settings
+========
+
+
+Spacings
+
+=========
+
+Tracks        Yes
+Pads and Vias Yes
+Shapes        Yes
+Text          Yes
+Board         Yes
+Drills        Yes
+Components    No
+
+
+Manufacturing
+
+==============
+
+Drill Breakout                  No
+Drill Backoff                   No
+Silkscreen Overlap              No
+Copper Text In Board            No
+Min Track Width                 No
+Min Annular Ring                No
+Min Paste Size                  No
+Vias In Pads                    No
+Unplated Vias                   No
+Unplated Pads With Inner Tracks No
+
+
+Nets
+
+=====
+
+Net Completion               No
+Dangling Tracks              No
+Net Track Length Differences No
+
+
+
+End Of Report.
