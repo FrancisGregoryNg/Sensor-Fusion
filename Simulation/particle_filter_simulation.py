@@ -65,7 +65,7 @@ std_dev_measurement = 9.68756654964
 mean = 0
 
 # Define the time in seconds (s) wherein velocity is measured
-T = 0.1
+T = 0.01
 
 # Define the room dimensions (width, length) correspond to (x, y)
 # The origin starts at a selected corner of the room
@@ -169,22 +169,21 @@ sim_time = 0
 print("Start of main loop\n")
 sim_duration = 60
 count = 0
+
+velocity = 10
+radius = 50
+
 while sim_time < sim_duration:
     count += 1
     print("Iteration # " + str(count), end = "")
     print("; sim_time = " + "{:.2f}".format(sim_time) + "s")
-    robot.setMotor(30, 0)
-
-    if sim_time >= 5 and sim_time < 10:
-        robot.setMotor(0, 30)
-    if sim_time >= 10 and sim_time < 15:
-        robot.setMotor(-20, 0)
-    if sim_time >= 15 and sim_time < 30:
-        robot.setMotor(10, 30)
-    if sim_time >= 30 and sim_time < 40:
-        robot.setMotor(-10, 20)
-    if sim_time >= 40 and sim_time < 60:
-        robot.setMotor(10, -10)
+    robot.setMotor(10, 10)
+    
+    if sim_time >= 10:
+        vx = velocity * np.cos(velocity*sim_time/radius)
+        vy = velocity * np.sin(velocity*sim_time/radius)
+        
+        robot.setMotor(vx, vy)
         
 #------------------------------------------------------------------------------
 # Measurement prediction
@@ -554,7 +553,7 @@ if progressive_plot == 0:
     # Overlapping plots
     plt.plot(actual_vertices_x, actual_vertices_y, 'r')
     plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
-    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
-    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
+    #plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
+    #plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
     plt.plot(n_estimated_vertices_x, n_estimated_vertices_y, 'k')
     plt.show()
