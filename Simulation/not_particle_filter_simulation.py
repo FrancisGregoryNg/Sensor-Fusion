@@ -217,24 +217,24 @@ print("Start of main loop\n")
 
 iteration = 0
 
-while sim_time < 20:
-    robot.setMotor(30, 0)
+while sim_time < 60:
+
     iteration += 1
     print("Iteration # " + str(iteration), end = "")
     print("; sim_time = " + "{:.2f}".format(sim_time) + "s")  
+    
     robot.setMotor(30, 0)
-    set_1 = 0
-    set_2 = 0
-    set_3 = 0
-    if sim_time > 5 and set_1 == 0:
+
+    if sim_time >= 5 and sim_time < 10:
         robot.setMotor(0, 30)
-        set_1 = 1
-    if sim_time > 10 and set_2 == 0:
-        robot.setMotor(-30, 0)
-        set_2 = 1
-    if sim_time > 15 and set_3 == 0:
-        robot.setMotor(0, -30)
-        set_3 = 1
+    if sim_time >= 10 and sim_time < 15:
+        robot.setMotor(-20, 0)
+    if sim_time >= 15 and sim_time < 30:
+        robot.setMotor(10, 30)
+    if sim_time >= 30 and sim_time < 40:
+        robot.setMotor(-10, 20)
+    if sim_time >= 40 and sim_time < 60:
+        robot.setMotor(10, -10)
     
 #------------------------------------------------------------------------------
 # Actual measurement
