@@ -72,7 +72,7 @@ class Vehicle:
         return (countsX, countsY)
         
     def readIEEE(self):
-        return (self.ieee[0], self.ieee[1])
+        return (self.ieee[0]+0.1, self.ieee[1]+0.1)
         
     def readActual(self):
         return (self.x, self.y)
