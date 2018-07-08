@@ -345,6 +345,6 @@ if progressive_plot == 0:
     
     # Print error values
     print("   [RMS Error]")
-    print("IEEE     = " + str('{:7.4f}'.format(IEEE_error * 100)) + " %")
-    print("Encoder  = " + str('{:7.4f}'.format(encoder_error * 100)) + " %")
-    print("Estimate = " + str('{:7.4f}'.format(estimate_error * 100)) + " %")
+    print("IEEE     = " + str('{:7.4f}'.format(IEEE_error)))
+    print("Encoder  = " + str('{:7.4f}'.format(encoder_error)))
+    print("Estimate = " + str('{:7.4f}'.format(estimate_error)))
