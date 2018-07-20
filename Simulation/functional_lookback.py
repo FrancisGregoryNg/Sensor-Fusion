@@ -306,6 +306,7 @@ while sim_time < sim_duration:
             plt.plot(new_IEEE[0, 0], new_IEEE[0, 1], 'b.')
             plt.plot(new_encoder[0, 0], new_encoder[0, 1], 'g.')
             plt.plot(new_estimate[0, 0], new_estimate[0, 1], 'm.')
+            plt.axis('equal')
             print("\033[H\033[J")   # Clear the console
             plt.show()
         
