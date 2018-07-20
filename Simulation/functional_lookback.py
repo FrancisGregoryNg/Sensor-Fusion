@@ -87,13 +87,18 @@ actual_plot_data = np.zeros((1, 2), dtype = float)
 IEEE_plot_data = np.zeros((1, 2), dtype = float)
 encoder_plot_data = np.zeros((1, 2), dtype = float)
 estimated_plot_data = np.zeros((1, 2), dtype = float)
+error_plot_data = np.zeros((1, 7), dtype = float)
 
 #------------------------------------------------------------------------------
 # Final preparations for main loop
 #------------------------------------------------------------------------------
     
 # Initialize the AGV
-robot = agv.Vehicle(0.024, 2, 0.8, 0.001)
+wheelRadius = diameter/2
+mass = 2
+friction = 0.8
+dt = 0.001
+robot = agv.Vehicle(wheelRadius, mass, friction, dt)
 sim_time = 0    
 
 ###############################################################################
@@ -112,8 +117,8 @@ radius = 50
 
 while sim_time < sim_duration:
     count += 1
-    print("Iteration # " + str(count), end = "")
-    print("; sim_time = " + "{:.2f}".format(sim_time) + "s")
+    print("\nIteration # {:d} | ".format(count), end = "")
+    print("sim_time = " + "{:.2f}".format(sim_time) + "s", end = "")
     robot.setMotor(10, 10)
     
     if sim_time >= 10:
@@ -199,7 +204,7 @@ while sim_time < sim_duration:
     measured_velocity_y = (encoder_1 / T) * np.pi * diameter * 0.5 / 360
     
 #------------------------------------------------------------------------------
-# Not particle filter
+# Functional lookback
 #------------------------------------------------------------------------------
 
     # Use sensor values to get the state
@@ -229,9 +234,38 @@ while sim_time < sim_duration:
     estimated_plot_data = np.append(estimated_plot_data, new_estimate, 
                                     axis = 0)
     
-    # Record estimated position for plot data
-    print("\t\t\t\tEstimated x = " + str(estimated_position_x))
-    print("\t\t\t\tEstimated y = " + str(estimated_position_y))
+    # Print estimated position for plot data
+    print("\t[Estimated x = {:.5f}".format(estimated_position_x), end = "")
+    print(" | Estimated y = {:.5f}".format(estimated_position_y), end = "]")
+    
+    # Calculate the RMS (root-mean-square) error
+    IEEE_rms = np.sqrt(np.mean(np.square(
+                                         np.subtract(IEEE_plot_data, 
+                                                     actual_plot_data))))
+    encoder_rms = np.sqrt(np.mean(np.square(
+                                            np.subtract(encoder_plot_data, 
+                                                        actual_plot_data))))
+    estimate_rms = np.sqrt(np.mean(np.square(
+                                             np.subtract(estimated_plot_data, 
+                                                         actual_plot_data))))
+    
+    # Calculate the instantaneous error
+    IEEE_inst = np.sqrt(np.mean(np.square(
+                                          np.subtract(new_IEEE, 
+                                                      new_actual))))
+    encoder_inst = np.sqrt(np.mean(np.square(
+                                             np.subtract(new_encoder, 
+                                                         new_actual))))
+    estimate_inst = np.sqrt(np.mean(np.square(
+                                              np.subtract(new_estimate, 
+                                                          new_actual))))
+    
+    
+    # Record progression of error per iteration
+    new_error = np.array([[count,
+                           IEEE_rms, encoder_rms, estimate_rms,
+                           IEEE_inst, encoder_inst, estimate_inst]])
+    error_plot_data = np.append(error_plot_data, new_error, axis = 0)
 
 ###############################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -240,37 +274,40 @@ while sim_time < sim_duration:
 ###############################################################################
     
     progressive_plot = 0
+    iterations_per_update = 50
     
     if progressive_plot == 1:
         
+        if np.mod((sim_duration / dt) - count, iterations_per_update) == 0:
+            
 #------------------------------------------------------------------------------
 # Convert numpy array to list
 #------------------------------------------------------------------------------
 
-        actual_vertices_x = np.ndarray.tolist(actual_plot_data[:, 0])
-        actual_vertices_y = np.ndarray.tolist(actual_plot_data[:, 1])
-        IEEE_vertices_x = np.ndarray.tolist(IEEE_plot_data[:, 0])
-        IEEE_vertices_y = np.ndarray.tolist(IEEE_plot_data[:, 1])
-        encoder_vertices_x = np.ndarray.tolist(encoder_plot_data[:, 0])
-        encoder_vertices_y = np.ndarray.tolist(encoder_plot_data[:, 1])
-        estimated_vertices_x = np.ndarray.tolist(estimated_plot_data[:, 0])
-        estimated_vertices_y = np.ndarray.tolist(estimated_plot_data[:, 1])
+            actual_vertices_x = np.ndarray.tolist(actual_plot_data[:, 0])
+            actual_vertices_y = np.ndarray.tolist(actual_plot_data[:, 1])
+            IEEE_vertices_x = np.ndarray.tolist(IEEE_plot_data[:, 0])
+            IEEE_vertices_y = np.ndarray.tolist(IEEE_plot_data[:, 1])
+            encoder_vertices_x = np.ndarray.tolist(encoder_plot_data[:, 0])
+            encoder_vertices_y = np.ndarray.tolist(encoder_plot_data[:, 1])
+            estimated_vertices_x = np.ndarray.tolist(estimated_plot_data[:, 0])
+            estimated_vertices_y = np.ndarray.tolist(estimated_plot_data[:, 1])
 
 #------------------------------------------------------------------------------
 # Plot the different position data
 #------------------------------------------------------------------------------
         
-        # Overlapping plots
-        plt.plot(actual_vertices_x, actual_vertices_y, 'r')
-        plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
-        plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
-        plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
-        plt.plot(new_actual[0, 0], new_actual[0, 1], 'r.')
-        plt.plot(new_IEEE[0, 0], new_IEEE[0, 1], 'b.')
-        plt.plot(new_encoder[0, 0], new_encoder[0, 1], 'g.')
-        plt.plot(new_estimate[0, 0], new_estimate[0, 1], 'm.')
-        print("\033[H\033[J")
-        plt.show()
+            # Overlapping plots
+            plt.plot(actual_vertices_x, actual_vertices_y, 'r')
+            plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
+            plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
+            plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
+            plt.plot(new_actual[0, 0], new_actual[0, 1], 'r.')
+            plt.plot(new_IEEE[0, 0], new_IEEE[0, 1], 'b.')
+            plt.plot(new_encoder[0, 0], new_encoder[0, 1], 'g.')
+            plt.plot(new_estimate[0, 0], new_estimate[0, 1], 'm.')
+            print("\033[H\033[J")   # Clear the console
+            plt.show()
         
 if progressive_plot == 0:
     
@@ -290,61 +327,85 @@ if progressive_plot == 0:
 #------------------------------------------------------------------------------
 # Plot the different position data
 #------------------------------------------------------------------------------
-
-    # Subplot
-    plt.subplot(2,2,1)
-    plt.plot(actual_vertices_x, actual_vertices_y, 'r')
-    plt.title("Actual")
-    plt.subplot(2,2,2)
-    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
-    plt.title("IEEE")
-    plt.subplot(2,2,3)
-    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
-    plt.title("Encoder")
-    plt.subplot(2,2,4)
-    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
-    plt.title("Estimate")
-    plt.tight_layout()
-    plt.show()
     
-    # Multiple plots
-    plt.plot(actual_vertices_x, actual_vertices_y, 'r')
-    plt.title("Actual")
-    plt.show()
-    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
-    plt.title("IEEE")
-    plt.show()
-    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
-    plt.title("Encoder")
-    plt.show()
-    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
-    plt.title("Estimate")
-    plt.show()
-
     # Overlapping plots
     plt.plot(actual_vertices_x, actual_vertices_y, 'r')
     plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
     plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
     plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
+    plt.axis('equal')
     plt.show()
     
-#------------------------------------------------------------------------------
-# Quantify the error
-#------------------------------------------------------------------------------
+    # Subplot
+    plt.subplot(2,2,1)
+    plt.plot(actual_vertices_x, actual_vertices_y, 'r')
+    plt.title("Actual")
+    plt.axis('equal')
+    plt.subplot(2,2,2)
+    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
+    plt.title("IEEE")
+    plt.axis('equal')
+    plt.subplot(2,2,3)
+    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
+    plt.title("Encoder")
+    plt.axis('equal')
+    plt.subplot(2,2,4)
+    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
+    plt.title("Estimate")
+    plt.axis('equal')
+    plt.tight_layout(pad=0.25, w_pad=1.0, h_pad=1.0)
+    plt.show()
     
-    # Calculate the RMS (root-mean-square) error
-    IEEE_error = np.sqrt(np.mean(np.square(
-                                           np.subtract(IEEE_plot_data, 
-                                                       actual_plot_data))))
-    encoder_error = np.sqrt(np.mean(np.square(
-                                              np.subtract(encoder_plot_data, 
-                                                          actual_plot_data))))
-    estimate_error = np.sqrt(np.mean(np.square(
-                                               np.subtract(estimated_plot_data, 
-                                               actual_plot_data))))
+#    # Multiple plots
+#    plt.plot(actual_vertices_x, actual_vertices_y, 'r')
+#    plt.title("Actual")
+#    plt.axis('equal')
+#    plt.show()
+#    plt.plot(IEEE_vertices_x, IEEE_vertices_y, 'b')
+#    plt.title("IEEE")
+#    plt.axis('equal')
+#    plt.show()
+#    plt.plot(encoder_vertices_x, encoder_vertices_y, 'g')
+#    plt.title("Encoder")
+#    plt.axis('equal')
+#    plt.show()
+#    plt.plot(estimated_vertices_x, estimated_vertices_y, 'm')
+#    plt.title("Estimate")
+#    plt.axis('equal')
+#    plt.show()
     
-    # Print error values
-    print("   [RMS Error]")
-    print("IEEE     = " + str('{:7.4f}'.format(IEEE_error)))
-    print("Encoder  = " + str('{:7.4f}'.format(encoder_error)))
-    print("Estimate = " + str('{:7.4f}'.format(estimate_error)))
+#------------------------------------------------------------------------------
+# Plot the error
+#------------------------------------------------------------------------------
+
+iteration_values = np.ndarray.tolist(error_plot_data[:, 0])
+IEEE_rms_values = np.ndarray.tolist(error_plot_data[:, 1])
+encoder_rms_values = np.ndarray.tolist(error_plot_data[:, 2])
+estimate_rms_values = np.ndarray.tolist(error_plot_data[:, 3])
+IEEE_inst_values = np.ndarray.tolist(error_plot_data[:, 4])
+encoder_inst_values = np.ndarray.tolist(error_plot_data[:, 5])
+estimate_inst_values = np.ndarray.tolist(error_plot_data[:, 6])
+
+# Plot error progression
+plt.subplot(2,2,1)
+plt.plot(iteration_values, IEEE_inst_values, 'r')
+plt.title("Instantaneous IEEE error")
+plt.subplot(2,2,2)
+plt.plot(iteration_values, encoder_inst_values, 'b')
+plt.title("Instantaneous encoder error")
+plt.subplot(2,2,3)
+plt.plot(iteration_values, estimate_inst_values, 'g')
+plt.title("Instantaneous estimate error")
+plt.subplot(2,2,4)
+plt.plot(iteration_values, IEEE_rms_values, 'r')
+plt.plot(iteration_values, encoder_rms_values, 'b')
+plt.plot(iteration_values, estimate_rms_values, 'g')
+plt.title("RMS error")
+plt.tight_layout(pad=0.25, w_pad=1.0, h_pad=1.0)
+plt.show()
+
+# Print error values
+print("\n   [Final RMS Error]")
+print("IEEE     = " + str('{:7.4f}'.format(IEEE_rms_values[-1])))
+print("Encoder  = " + str('{:7.4f}'.format(encoder_rms_values[-1])))
+print("Estimate = " + str('{:7.4f}'.format(estimate_rms_values[-1])))
